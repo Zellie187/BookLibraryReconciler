@@ -28,6 +28,7 @@ class BookBuilder:
         self.book.path = row["path"]
 
         self.book.timestamp = row["timestamp"]
+        self.book.last_modified = row["last_modified"] or ""
 
         self.book.pubdate = row["pubdate"] or ""
 

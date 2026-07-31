@@ -4,6 +4,33 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.1.0 - Search engine and library navigation
+
+### Added
+- `models/search_criteria.py` - `SearchCriteria` (field/operator/value).
+- `services/search_service.py` - `SearchService`, filtering an
+  in-memory `list[Book]` against AND-combined `SearchCriteria`.
+  Searchable fields: title, author, isbn, uuid, series, publisher,
+  language, tag, format, comments, path, date_added, last_modified,
+  rating, has_cover. Operators: exact, contains, starts_with,
+  ends_with, regex, fuzzy (stdlib `difflib`), missing, present, and
+  numeric eq/gte/lte/gt/lt. Sortable by title, author, series (name
+  then series_index), rating, date_added, last_modified, size.
+- `controllers/search_controller.py` - `SearchController`, parsing the
+  CLI's `field=value` / `field:mode=value` / `field:missing` /
+  `field>=value` query syntax plus convenience aliases
+  (`missing-isbn`, `has-cover`, etc.) into `SearchCriteria`.
+- `books.last_modified` wired into `Book`/`BookBuilder`/`BookRepository`
+  (the column existed in Calibre's schema but was never read before).
+- `ReportWriter.write_search_results()` for `--csv` on the new command.
+- CLI: `python run.py search <terms...> [--sort FIELD] [--desc]
+  [--limit N] [--csv]`.
+- `docs/architecture/Search.md`; `Roadmap.md` rewritten to match the
+  authoritative v1.x version table (search now precedes metadata
+  analysis/reporting in the sequence, reflecting what actually shipped).
+
+---
+
 ## Version 1.0.0-alpha
 
 ### Added (architecture pass)

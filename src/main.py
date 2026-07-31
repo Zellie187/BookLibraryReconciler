@@ -9,11 +9,13 @@ from analyzers.library_analyzer import LibraryAnalyzer
 from app.application import Application
 from config.constants import LINE, VERSION
 from config.paths import OUTPUT_FOLDER
+from controllers.search_controller import SearchController
 from metadata.metadata_score import MetadataScorer
 from repair.backup import backup_database
 from repair.file_organizer import FileOrganizer
 from repair.organize_applier import OrganizeApplier
 from reports.csv_report import CsvReport
+from services.search_service import SORT_KEYS
 
 
 def print_header(app):
@@ -118,6 +120,45 @@ def run_health(args, app):
         print(f"\nFull report written to:\n{output_path}")
 
 
+def run_search(args, app):
+
+    controller = SearchController(app.search_service)
+
+    try:
+        results = controller.search(
+            args.where, sort_by=args.sort, descending=args.desc, limit=None
+        )
+    except ValueError as error:
+        print(f"Error: {error}")
+        return
+
+    print(f"Matches: {len(results):,}\n")
+
+    scorer = MetadataScorer()
+
+    for book in results[: args.limit]:
+
+        score = scorer.score_book(book).score
+        cover = "yes" if book.has_cover else "no"
+
+        print(
+            f"#{book.id:<6} {book.title!r:<45} {book.author_names:<25} "
+            f"series={book.series_name or '-':<20} rating={book.rating} "
+            f"score={score:>3}% isbn={book.isbn or '-':<15} cover={cover:<3} "
+            f"formats={','.join(book.formats) or '-'}"
+        )
+
+    if len(results) > args.limit:
+        print(f"\n... and {len(results) - args.limit:,} more (use --csv for the full list)")
+
+    if args.csv:
+        report_writer = CsvReport()
+        output_path = report_writer.write_search_results(
+            results, OUTPUT_FOLDER / "search_results.csv", scorer=scorer
+        )
+        print(f"\nFull results written to:\n{output_path}")
+
+
 def run_organize(args, app):
 
     books = app.library_service.get_all_books()
@@ -203,6 +244,25 @@ def build_parser():
         help="Actually move files and update metadata.db (backs it up first)",
     )
     organize_parser.set_defaults(func=run_organize)
+
+    search_parser = subparsers.add_parser(
+        "search", help="Search the library by any field, with AND-combined filters"
+    )
+    search_parser.add_argument(
+        "where",
+        nargs="*",
+        help=(
+            "Filter terms, e.g. author=King series:exact='Dark Tower' "
+            "isbn:missing rating>=4 missing-cover"
+        ),
+    )
+    search_parser.add_argument("--sort", choices=sorted(SORT_KEYS.keys()), default=None)
+    search_parser.add_argument("--desc", action="store_true", help="Sort descending")
+    search_parser.add_argument("--limit", type=int, default=20, help="How many matches to print")
+    search_parser.add_argument(
+        "--csv", action="store_true", help="Write the full results to output/search_results.csv"
+    )
+    search_parser.set_defaults(func=run_search)
 
     return parser
 

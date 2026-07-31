@@ -53,6 +53,7 @@ class Book:
     path: str = ""
 
     timestamp: str = ""
+    last_modified: str = ""
 
     size: int = 0
 

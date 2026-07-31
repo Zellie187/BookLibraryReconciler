@@ -10,6 +10,8 @@ format gets them for free.
 
 from abc import ABC, abstractmethod
 
+from metadata.metadata_score import MetadataScorer
+
 
 class ReportWriter(ABC):
 
@@ -57,6 +59,41 @@ class ReportWriter(ABC):
         rows = [
             [report.book_id, report.title, report.score, ", ".join(report.failed)]
             for report in reports
+        ]
+
+        return self.write_table(headers, rows, output_path)
+
+    # ---------------------------------------------------------
+
+    def write_search_results(self, books, output_path, scorer=None):
+
+        scorer = scorer or MetadataScorer()
+
+        headers = [
+            "book_id",
+            "title",
+            "author",
+            "series",
+            "rating",
+            "metadata_score",
+            "isbn",
+            "formats",
+            "has_cover",
+        ]
+
+        rows = [
+            [
+                book.id,
+                book.title,
+                book.author_names,
+                book.series_name,
+                book.rating,
+                scorer.score_book(book).score,
+                book.isbn,
+                ", ".join(book.formats),
+                book.has_cover,
+            ]
+            for book in books
         ]
 
         return self.write_table(headers, rows, output_path)

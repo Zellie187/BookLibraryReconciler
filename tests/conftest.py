@@ -153,15 +153,15 @@ def seeded_db(calibre_db_path):
     cursor = connection.cursor()
 
     cursor.execute(
-        "INSERT INTO books (id, title, sort, timestamp, pubdate, series_index, "
+        "INSERT INTO books (id, title, sort, timestamp, last_modified, pubdate, series_index, "
         "author_sort, path, uuid, has_cover) VALUES "
-        "(1, 'Doctor Sleep', 'Doctor Sleep', '2020-01-01', '2013-01-01', 0, "
+        "(1, 'Doctor Sleep', 'Doctor Sleep', '2020-01-01', '2020-06-01', '2013-01-01', 0, "
         "'King, Stephen', 'Stephen King/Doctor Sleep (1)', 'uuid-1', 1)"
     )
     cursor.execute(
-        "INSERT INTO books (id, title, sort, timestamp, pubdate, series_index, "
+        "INSERT INTO books (id, title, sort, timestamp, last_modified, pubdate, series_index, "
         "author_sort, path, uuid, has_cover) VALUES "
-        "(2, 'The Maze of Bones by Rick Riordan', 'Maze of Bones', '2020-01-02', '', 1.0, "
+        "(2, 'The Maze of Bones by Rick Riordan', 'Maze of Bones', '2020-01-02', '2020-01-02', '', 1.0, "
         "'Unknown', 'Unknown/The Maze of Bones by Rick Riordan (2)', 'uuid-2', 0)"
     )
 

@@ -59,6 +59,7 @@ class BookRepository:
                 path,
                 has_cover,
                 timestamp,
+                last_modified,
                 pubdate,
                 series_index
 

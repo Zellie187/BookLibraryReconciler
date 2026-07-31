@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-This project is in alpha (`v1.0.0-alpha`). Only the latest commit on
-`main` is supported with security fixes until a first stable release
-tags a supported-versions table here.
+This project is pre-1.0 (currently `v1.1.0`, see `docs/architecture/Roadmap.md`).
+Only the latest commit on `main` is supported with security fixes
+until a first stable release tags a supported-versions table here.
 
 ## Reporting a Vulnerability
 

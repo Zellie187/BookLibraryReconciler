@@ -14,6 +14,7 @@ from config.settings import LIBRARY_ROOT, METADATA_DB
 from core.database import DatabaseManager
 from repositories.book_repository import BookRepository
 from services.library_service import LibraryService
+from services.search_service import SearchService
 
 
 class Application:
@@ -26,6 +27,7 @@ class Application:
         self.database = None
         self.book_repository = None
         self.library_service = None
+        self.search_service = None
 
     # ---------------------------------------------------------
 
@@ -36,6 +38,7 @@ class Application:
 
         self.book_repository = BookRepository(self.database)
         self.library_service = LibraryService(self.book_repository)
+        self.search_service = SearchService(self.book_repository)
 
         return self
 

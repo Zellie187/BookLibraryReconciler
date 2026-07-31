@@ -16,6 +16,7 @@ python run.py preview --limit 10
 python run.py health --limit 10 --csv
 python run.py organize --limit 10 --csv
 python run.py organize --apply
+python run.py search "author=King" "isbn:missing" --sort title --csv
 ```
 
 By default this reads the bundled sample library in `data/` (7,029
@@ -61,12 +62,13 @@ All three are configured in `pyproject.toml` and run in CI
 ```
 src/
     app/            Application bootstrap (dependency injection root)
+    controllers/    SearchController - parses CLI query syntax into service calls
     config/         paths, settings (Settings/config.json), constants
     core/           DatabaseManager, schema/database explorers, Timer
-    models/         Book, Author, Series, FormatFile (dataclasses)
+    models/         Book, Author, Series, FormatFile, SearchCriteria (dataclasses)
     builders/       BookBuilder
     repositories/   one class per Calibre table/relationship (see Gateways.md)
-    services/       LibraryService
+    services/       LibraryService, SearchService
     analyzers/      LibraryAnalyzer (read-only stats)
     metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine
     repair/         FileOrganizer, OrganizeApplier, backup
@@ -85,6 +87,7 @@ resources/          future GUI assets (icons/images/themes/fonts)
 | You want to... | Start here |
 |---|---|
 | Read a new Calibre table/field | `repositories/`, `builders/book_builder.py` - see `Gateways.md` |
+| Add a searchable/sortable field | `services/search_service.py`'s `FIELD_EXTRACTORS`/`SORT_KEYS` - see `Search.md` |
 | Add a completeness/validity check | `metadata/metadata_score.py` or `metadata_validator.py` - see `Metadata-Engine.md` |
 | Add an external metadata source | `providers/` - see `Providers.md` |
 | Add an output format | `reports/` - subclass `ReportWriter`, implement `write_table()` |

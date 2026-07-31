@@ -5,7 +5,7 @@ It points at a **Calibre** library, tells you what's wrong with your
 metadata, and can safely reorganize messy filenames/folders into a clean
 `Author/Title` layout without breaking Calibre's own database.
 
-Status: v1.0.0-alpha (foundation + first reorganize/health-scoring slice).
+Status: v1.0.0-alpha foundation + v1.1.0 search engine shipped.
 
 ## Requirements
 
@@ -47,10 +47,28 @@ python run.py preview --limit 10   # show N books + basic library stats (default
 python run.py health --limit 10    # metadata completeness score per book
 python run.py organize --limit 10  # preview a reorganize, changes nothing
 python run.py organize --apply     # back up metadata.db, then actually move files
+python run.py search "author=King" "isbn:missing" --sort title --limit 20
 ```
 
-Add `--csv` to `health` or `organize` to write the full results to
-`output/health_report.csv` / `output/organize_plan.csv`.
+Add `--csv` to `health`, `organize`, or `search` to write the full
+results to `output/health_report.csv` / `output/organize_plan.csv` /
+`output/search_results.csv`.
+
+### How `search` works
+
+Every AND-combined filter term is `field=value`, `field:mode=value`
+(`exact`/`contains`/`starts_with`/`ends_with`/`regex`/`fuzzy`),
+`field:missing`/`field:present`, or a numeric comparison like
+`rating>=4`. Convenience aliases cover the spec's "Missing ISBN"/"Has
+Cover" style filters directly: `missing-isbn`, `missing-cover`,
+`has-cover`, `missing-series`, `missing-description`. See
+`docs/architecture/Search.md` for the full field list, every operator,
+and how sorting works.
+
+```bash
+python run.py search "series:exact=Dark Tower" "language=eng" --sort series
+python run.py search missing-isbn has-cover --sort rating --desc
+```
 
 ### How `organize` works
 
@@ -80,6 +98,7 @@ pytest
 
 ```
 Application Layer   (src/app)           -- bootstrap + dependency injection
+Controller Layer    (src/controllers)   -- parses CLI query syntax into service calls
 Service Layer       (src/services)
 Repository Layer    (src/repositories)  -- reads/writes metadata.db
 Builder Layer       (src/builders)      -- assembles Book objects
@@ -99,8 +118,8 @@ is in `docs/architecture/` - start with `Architecture.md` and
 
 - External metadata providers (Open Library, Google Books, ISBNdb) —
   interface-conformant stubs exist in `src/providers/` but raise
-  `NotImplementedError` (planned v1.2.0). Calibre itself is wired up
-  as a working provider (`src/providers/calibre/`).
+  `NotImplementedError` (planned v1.4.0/v2.1.0). Calibre itself is
+  wired up as a working provider (`src/providers/calibre/`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
 - Duplicate detection, cover-fetching, Excel/HTML reports, GUI — see
