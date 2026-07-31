@@ -50,3 +50,21 @@ class LibraryService:
     def rename_format(self, book_id, old_format, new_name):
 
         self.book_repository.format_repo.rename_format(book_id, old_format, new_name)
+
+    # ---------------------------------------------------------
+
+    def update_book_title(self, book_id, new_title):
+
+        self.book_repository.update_title(book_id, new_title)
+
+    # ---------------------------------------------------------
+
+    def get_all_author_records(self):
+
+        return self.book_repository.author_repo.get_all_author_records()
+
+    # ---------------------------------------------------------
+
+    def merge_authors(self, canonical_author_id, duplicate_author_ids):
+
+        self.book_repository.author_repo.merge_authors(canonical_author_id, duplicate_author_ids)

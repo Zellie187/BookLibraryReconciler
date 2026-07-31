@@ -8,6 +8,8 @@ the SQLite database connection.
 import sqlite3
 from pathlib import Path
 
+from core.calibre_functions import calculate_title_sort
+
 
 class DatabaseManager:
     """
@@ -28,6 +30,10 @@ class DatabaseManager:
 
         # Return rows as dictionaries
         self.connection.row_factory = sqlite3.Row
+
+        # Calibre's own books_update_trg/books_insert_trg triggers call
+        # a custom title_sort() SQL function - see calibre_functions.py.
+        self.connection.create_function("title_sort", 1, calculate_title_sort)
 
         return self.connection
 

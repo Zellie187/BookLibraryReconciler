@@ -117,3 +117,22 @@ class BookRepository:
         )
 
         self.db.connection.commit()
+
+    # ---------------------------------------------------------
+
+    def update_title(self, book_id, new_title):
+        """
+        Calibre's own books_update_trg trigger recomputes the `sort`
+        (title_sort) column automatically as part of this UPDATE - see
+        core/calibre_functions.py for the title_sort() implementation
+        DatabaseManager registers to make that trigger work.
+        """
+
+        cursor = self.db.connection.cursor()
+
+        cursor.execute(
+            "UPDATE books SET title = ? WHERE id = ?",
+            (new_title, book_id),
+        )
+
+        self.db.connection.commit()

@@ -4,6 +4,50 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.3.0 - Metadata repair engine
+
+### Added
+- `repair/metadata_repair_applier.py` - `MetadataRepairApplier` writes
+  `MetadataRepair` suggestions back to `metadata.db` via
+  `LibraryService.update_book_title()`, skipping (and reporting)
+  suggestions with no concrete `suggested_value`.
+- `metadata/text_normalize.py` - `name_signature()` extracted from
+  `duplicate_detector.py` so `author_duplicate_finder.py` can share it.
+- `metadata/author_duplicate_finder.py` - `AuthorDuplicateFinder` groups
+  Calibre `authors` rows that are the same person spelled differently
+  ("Stephen King" / "King, Stephen" / "King| Stephen"). Found 52 groups
+  in the bundled 7,000-book sample's 1,468 distinct authors, all
+  genuine on inspection - no fuzzy tuning needed (exact signature match).
+- `repair/author_merger.py` - `AuthorMerger` applies those groups:
+  repoints `books_authors_link` to the canonical (lowest-id) author and
+  deletes the duplicate rows (`repositories/author_repository.py:merge_authors`).
+- `repositories/book_repository.py:update_title()`,
+  `repositories/author_repository.py:get_all_author_records()` /
+  `merge_authors()`, and matching `LibraryService` wrappers.
+- CLI: `python run.py repair [--limit N] [--csv] [--apply]`.
+
+### Fixed
+- **`title_contains_by_clause` false positive**: the heuristic matched
+  a single capitalized word after "by", which misidentified real
+  titles ending in ordinary English - "Married by Morning" (Lisa
+  Kleypas) and "Dexter by Design" (Jeff Lindsay) - as author-echoed
+  titles. Found by running `repair --apply` against a throwaway copy
+  of the bundled sample and checking the result, *before* this reached
+  a real library. Now requires 2+ capitalized words ("by Rick
+  Riordan"), which still catches every genuine case in the sample.
+- **`no such function: title_sort`**: Calibre's own `books_update_trg`
+  trigger recomputes the `sort` column via a `title_sort()` SQL
+  function whenever `books.title` changes - a function only Calibre's
+  own process normally registers. `update_title()` failed on every
+  call until `core/calibre_functions.py:calculate_title_sort()`
+  (Calibre's real "move a leading article to the end" algorithm,
+  verified against real `sort` values in the sample) was added and
+  registered by `DatabaseManager.connect()`. `tests/conftest.py`'s
+  fixture schema now includes the real trigger so this class of bug is
+  caught by the test suite, not just manual smoke testing.
+
+---
+
 ## Version 1.2.0 - Metadata analysis and health scoring
 
 ### Added

@@ -10,6 +10,7 @@ import sqlite3
 
 import pytest
 
+from core.calibre_functions import calculate_title_sort
 from core.database import DatabaseManager
 
 SCHEMA = """
@@ -123,6 +124,23 @@ CREATE TABLE data (
     uncompressed_size INTEGER,
     name TEXT
 );
+
+-- Mirrors Calibre's real books_insert_trg/books_update_trg: any write
+-- that changes books.title requires a title_sort() SQL function to be
+-- registered on the connection (see core/calibre_functions.py) or the
+-- write fails with "no such function: title_sort". Included here so
+-- that regression was actually catchable by the test suite - it
+-- wasn't, until this was added (see CHANGELOG for the incident).
+CREATE TRIGGER books_insert_trg AFTER INSERT ON books
+    BEGIN
+        UPDATE books SET sort=title_sort(NEW.title) WHERE id=NEW.id;
+    END;
+
+CREATE TRIGGER books_update_trg AFTER UPDATE ON books
+    BEGIN
+        UPDATE books SET sort=title_sort(NEW.title)
+                     WHERE id=NEW.id AND OLD.title <> NEW.title;
+    END;
 """
 
 
@@ -150,6 +168,7 @@ def seeded_db(calibre_db_path):
 
     connection = sqlite3.connect(calibre_db_path)
     connection.row_factory = sqlite3.Row
+    connection.create_function("title_sort", 1, calculate_title_sort)
     cursor = connection.cursor()
 
     cursor.execute(

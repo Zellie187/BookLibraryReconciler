@@ -6,7 +6,7 @@ metadata, and can safely reorganize messy filenames/folders into a clean
 `Author/Title` layout without breaking Calibre's own database.
 
 Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
-metadata analysis/health scoring shipped.
+metadata analysis/health scoring + v1.3.0 metadata repair engine shipped.
 
 ## Requirements
 
@@ -34,10 +34,10 @@ point it at your own Calibre library, edit `Settings/config.json`:
 Leave `metadata_db` blank to use `<library_path>/metadata.db` (the
 normal location Calibre itself uses).
 
-**Before running `organize --apply` against a real library: close
-Calibre first.** Calibre keeps its own connection to `metadata.db` open
-while it runs, and having two processes writing to it at once can
-corrupt the database.
+**Before running `organize --apply` or `repair --apply` against a real
+library: close Calibre first.** Calibre keeps its own connection to
+`metadata.db` open while it runs, and having two processes writing to
+it at once can corrupt the database.
 
 ## Usage
 
@@ -47,15 +47,38 @@ Always run through `run.py`:
 python run.py preview --limit 10   # show N books + basic library stats (default command)
 python run.py health --limit 10    # metadata completeness score per book
 python run.py analyze --limit 10   # full inspection: score + validation + duplicates + series order
+python run.py repair --limit 10    # preview title-repair suggestions + duplicate-author merges
+python run.py repair --apply       # back up metadata.db, then rewrite titles + merge duplicate authors
 python run.py organize --limit 10  # preview a reorganize, changes nothing
 python run.py organize --apply     # back up metadata.db, then actually move files
 python run.py search "author=King" "isbn:missing" --sort title --limit 20
 ```
 
-Add `--csv` to `health`, `analyze`, `organize`, or `search` to write
-the full results to `output/health_report.csv` /
-`output/library_analysis.csv` / `output/organize_plan.csv` /
-`output/search_results.csv`.
+Add `--csv` to `health`, `analyze`, `repair`, `organize`, or `search`
+to write the full results to `output/health_report.csv` /
+`output/library_analysis.csv` / `output/repair_suggestions.csv` /
+`output/organize_plan.csv` / `output/search_results.csv`.
+
+### How `repair` works
+
+Two independent fixes, both preview-first:
+
+- **Title repairs** - `MetadataRepair` suggests stripping a trailing
+  `" by <Author>"` clause some imports leave embedded in the title
+  itself (e.g. `"The Maze of Bones by Rick Riordan"` ->
+  `"The Maze of Bones"`). Only suggestions with a concrete value are
+  auto-applicable; titles that are just an echo of the author's own
+  name (the real title is genuinely unknown) are always reported as
+  needing manual review, never guessed at.
+- **Duplicate author merging** - `AuthorDuplicateFinder` groups Calibre
+  author records that are the same person recorded differently
+  (`"Stephen King"` / `"King, Stephen"` / `"King| Stephen"`), and
+  `--apply` repoints every affected book to one canonical author id.
+
+`--apply` backs up `metadata.db` first, same as `organize`. See
+`docs/architecture/Metadata-Engine.md` for how a real false-positive
+in the title heuristic (misfiring on real titles like "Married by
+Morning") was found and fixed before this could ship.
 
 ### How `analyze` works
 
@@ -136,9 +159,9 @@ is in `docs/architecture/` - start with `Architecture.md` and
   wired up as a working provider (`src/providers/calibre/`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
-- Cover-fetching, Excel/HTML/PDF reports, GUI, duplicate *file*/*author*
-  detection (duplicate *books* by ISBN or title are covered) — see
-  `docs/architecture/Roadmap.md`.
+- Cover-fetching, Excel/HTML/PDF reports, GUI, duplicate *file*
+  detection (duplicate *books* by ISBN/title and duplicate *authors*
+  are both covered) — see `docs/architecture/Roadmap.md`.
 
 ## Contributing
 

@@ -80,22 +80,44 @@ See `Metadata-Engine.md` for the full write-up.
 
 Not done:
 
-- [ ] Duplicate *files* / duplicate *authors* detection (only duplicate
-      *books* - by ISBN or title - are covered so far)
+- [ ] Duplicate *file* detection (duplicate *books*, by ISBN or title,
+      and duplicate *authors* are both covered - see v1.3.0)
 
-## v1.3.0 - Metadata repair engine
+## v1.3.0 - Metadata repair engine (done)
+
+See `Metadata-Engine.md` for the full write-up, including a real bug
+this work turned up (Calibre's `title_sort` trigger dependency,
+documented in `Database.md`) and a real false-positive fix (the
+`title_contains_by_clause` heuristic was misfiring on real titles like
+"Married by Morning" until tightened).
 
 - [x] Non-destructive repair suggestions (`metadata_repair.py`) - two
       patterns so far (`title_contains_by_clause`, `title_matches_author`)
+- [x] Preview -> approve -> apply -> backup workflow for metadata
+      writes (`repair/metadata_repair_applier.py` - the *file*
+      reorganize side already existed in `organize_applier.py`; this is
+      its metadata-field equivalent). Wired into `python run.py repair`.
+- [x] Duplicate author detection + merging (`author_duplicate_finder.py`,
+      `repair/author_merger.py`) - 52 groups found and correctly merged
+      against the bundled 7,000-book sample, verified end-to-end
+      (including that unrelated authors sharing a surname were *not*
+      over-merged)
+- [x] Repair modes, simplified for a non-interactive CLI: suggestions
+      with a concrete `suggested_value` are "auto-applicable" under
+      `--apply`; suggestions without one (the real value is genuinely
+      unknown from local data) always require manual review - there is
+      no fully-automatic mode that skips this distinction
+
+Not done:
+
 - [ ] Repair sources comparison (Calibre vs Open Library vs Google
-      Books vs ISBNdb) - blocked on v1.4.0/v2.1.0 providers being real
-- [ ] Automatic / semi-automatic / manual repair modes
-- [ ] Preview -> approve -> apply -> backup workflow for metadata
-      writes (the *file* reorganize side of this already exists - see
-      `repair/organize_applier.py` - this is the metadata-field
-      equivalent)
-- [ ] Duplicate author merging
-- [ ] Broken series order repair
+      Books vs ISBNdb) - blocked on v1.4.0/v2.1.0 providers being real;
+      comparing Calibre against itself has no value
+- [ ] Broken series order *repair* - `series_order.py` (v1.2.0) already
+      *detects* duplicate/gap positions, but deciding which book should
+      move to which position is exactly the kind of judgment call this
+      project's rules say a human should make in Calibre itself, not
+      something to guess at automatically
 
 ## v1.4.0 - Open Library provider and cover downloads
 

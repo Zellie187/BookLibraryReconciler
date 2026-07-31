@@ -10,10 +10,14 @@ from app.application import Application
 from config.constants import LINE, VERSION
 from config.paths import OUTPUT_FOLDER
 from controllers.search_controller import SearchController
+from metadata.author_duplicate_finder import AuthorDuplicateFinder
 from metadata.library_inspector import LibraryInspector
+from metadata.metadata_repair import MetadataRepair
 from metadata.metadata_score import MetadataScorer
+from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
 from repair.file_organizer import FileOrganizer
+from repair.metadata_repair_applier import MetadataRepairApplier
 from repair.organize_applier import OrganizeApplier
 from reports.csv_report import CsvReport
 from services.search_service import SORT_KEYS
@@ -204,6 +208,77 @@ def run_search(args, app):
         print(f"\nFull results written to:\n{output_path}")
 
 
+def run_repair(args, app):
+
+    books = app.library_service.get_all_books()
+
+    suggestions = MetadataRepair().suggest_for_library(books)
+    applicable = [s for s in suggestions if s.suggested_value]
+    needs_review = [s for s in suggestions if not s.suggested_value]
+
+    author_records = app.library_service.get_all_author_records()
+    author_groups = AuthorDuplicateFinder().find_duplicates(author_records)
+
+    print(
+        f"Title repair suggestions      : {len(suggestions):,} "
+        f"({len(applicable):,} auto-applicable, {len(needs_review):,} need manual review)"
+    )
+    print(f"Duplicate author groups       : {len(author_groups):,}")
+
+    if applicable:
+        print("\nAuto-applicable title repairs:\n")
+        for suggestion in applicable[: args.limit]:
+            print(f"  #{suggestion.book_id}: {suggestion.current_value!r} -> {suggestion.suggested_value!r}")
+
+    if needs_review:
+        print("\nNeeds manual review (no automatic suggestion possible):\n")
+        for suggestion in needs_review[: args.limit]:
+            print(f"  #{suggestion.book_id}: {suggestion.current_value!r} - {suggestion.reason}")
+
+    if author_groups:
+        print("\nDuplicate author groups:\n")
+        for group in author_groups[: args.limit]:
+            print(f"  {group.names} -> merge into author #{group.canonical_author_id}")
+
+    if args.csv:
+        report_writer = CsvReport()
+        output_path = report_writer.write_repair_suggestions(
+            suggestions, OUTPUT_FOLDER / "repair_suggestions.csv"
+        )
+        print(f"\nFull suggestions written to:\n{output_path}")
+
+    if not args.apply:
+        print("\nDry run only - nothing was changed. Re-run with --apply to make changes.")
+        return
+
+    if not applicable and not author_groups:
+        print("\nNothing to apply.")
+        return
+
+    print(f"\nBacking up database: {app.database_path}")
+    backup_path = backup_database(app.database_path)
+    print(f"Backup written to  : {backup_path}")
+
+    title_results = MetadataRepairApplier(app.library_service).apply(applicable)
+    author_results = AuthorMerger(app.library_service).apply(author_groups)
+
+    title_applied = sum(1 for result in title_results if result.applied)
+    title_failed = [result for result in title_results if result.error]
+
+    author_merged = sum(1 for result in author_results if result.merged)
+    author_failed = [result for result in author_results if result.error]
+
+    print(f"\nTitles repaired      : {title_applied:,}")
+    print(f"Title failures       : {len(title_failed):,}")
+    for result in title_failed:
+        print(f"  #{result.book_id}: {result.error}")
+
+    print(f"\nAuthor groups merged : {author_merged:,}")
+    print(f"Author merge failures: {len(author_failed):,}")
+    for result in author_failed:
+        print(f"  canonical #{result.canonical_author_id}: {result.error}")
+
+
 def run_organize(args, app):
 
     books = app.library_service.get_all_books()
@@ -289,6 +364,22 @@ def build_parser():
         help="Actually move files and update metadata.db (backs it up first)",
     )
     organize_parser.set_defaults(func=run_organize)
+
+    repair_parser = subparsers.add_parser(
+        "repair", help="Preview (default) or apply metadata repairs: title fixes + author merges"
+    )
+    repair_parser.add_argument(
+        "--limit", type=int, default=10, help="How many findings to print per section"
+    )
+    repair_parser.add_argument(
+        "--csv", action="store_true", help="Write the full suggestions to output/repair_suggestions.csv"
+    )
+    repair_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Actually rewrite titles and merge duplicate authors in metadata.db (backs it up first)",
+    )
+    repair_parser.set_defaults(func=run_repair)
 
     analyze_parser = subparsers.add_parser(
         "analyze",

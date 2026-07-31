@@ -67,3 +67,22 @@ def test_update_path(database_manager):
     book = next(book for book in books if book.id == 1)
 
     assert book.path == "Stephen King/Doctor Sleep"
+
+
+def test_update_title_also_recomputes_sort(database_manager):
+    """
+    Regression: Calibre's real books_update_trg trigger recomputes the
+    `sort` column via a title_sort() SQL function whenever title
+    changes - without DatabaseManager registering an equivalent
+    function, this UPDATE raises "no such function: title_sort".
+    """
+
+    repository = BookRepository(database_manager)
+
+    repository.update_title(2, "The Maze of Bones")
+
+    books = repository.get_books()
+    book = next(book for book in books if book.id == 2)
+
+    assert book.title == "The Maze of Bones"
+    assert book.title_sort == "Maze of Bones, The"

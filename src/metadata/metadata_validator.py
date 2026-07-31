@@ -12,7 +12,13 @@ from dataclasses import dataclass, field
 
 from metadata.isbn_validator import is_valid_isbn
 
-BY_CLAUSE_PATTERN = re.compile(r"\s+by\s+[A-Z][\w.'-]*(?:\s+[A-Z][\w.'-]*)*$")
+# Requires at least two capitalized tokens after "by" ("by Rick Riordan"),
+# not just one ("by Morning", "by Design") - real titles routinely end in
+# "by <a single capitalized word>" as ordinary English, and a single-word
+# match produced false positives against real titles like "Married by
+# Morning" and "Dexter by Design". Two-plus capitalized words in a row is
+# a much stronger signal of an actual "Title by Firstname Lastname" echo.
+BY_CLAUSE_PATTERN = re.compile(r"\s+by\s+[A-Z][\w.'-]*(?:\s+[A-Z][\w.'-]*)+$")
 
 
 @dataclass

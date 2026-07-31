@@ -19,17 +19,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
+from metadata.text_normalize import name_signature
+
 FUZZY_DUPLICATE_THRESHOLD = 0.95
-
-
-def _name_signature(text):
-    """
-    Word-set signature used to recognize "title is just the author's
-    name" regardless of punctuation or word order - "Berry, Steve",
-    "Steve Berry", and "Berry Steve" all produce the same signature.
-    """
-
-    return tuple(sorted(re.findall(r"\w+", (text or "").lower())))
 
 
 def _strip_digits(text):
@@ -97,8 +89,8 @@ class DuplicateDetector:
             author_key = author.name.lower() if author else ""
 
             if author is not None:
-                title_signature = _name_signature(book.title)
-                if title_signature in (_name_signature(author.name), _name_signature(author.sort)):
+                title_signature = name_signature(book.title)
+                if title_signature in (name_signature(author.name), name_signature(author.sort)):
                     continue
 
             books_by_author[author_key].append(book)

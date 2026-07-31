@@ -54,13 +54,58 @@ above), `annotations*`, `conversion_options`, `last_read_positions`,
 
 ## Writes
 
-Only two repository methods write to `metadata.db`, and only when the
-Repair Engine's `OrganizeApplier` calls them after a file move/rename
-has already succeeded on disk:
-
-- `BookRepository.update_path(book_id, new_path)` - the book's folder moved.
-- `FormatRepository.rename_format(book_id, old_format, new_name)` - one format file was renamed.
+| Method | Called by |
+|---|---|
+| `BookRepository.update_path(book_id, new_path)` | `OrganizeApplier`, after a folder move succeeds on disk |
+| `FormatRepository.rename_format(book_id, old_format, new_name)` | `OrganizeApplier`, after a format file rename succeeds on disk |
+| `BookRepository.update_title(book_id, new_title)` | `MetadataRepairApplier` |
+| `AuthorRepository.merge_authors(canonical_id, duplicate_ids)` | `AuthorMerger` |
 
 Every SQL statement uses parameterized queries (`?` placeholders) -
 values are never string-interpolated into SQL, including in the write
 paths above.
+
+## Calibre's own triggers, and why `title_sort()` must be registered
+
+`metadata.db` isn't a passive schema - Calibre defines triggers on
+`books` that fire on any external write, and those triggers call
+custom SQL functions Calibre's own Python process normally registers
+via `sqlite3.Connection.create_function()`. An external tool that
+opens the database with a plain `sqlite3.connect()` and doesn't
+register the same functions will get the write half-done or, more
+often, an outright error.
+
+This was found for real, not hypothetically: the first version of
+`BookRepository.update_title()` failed on every call with
+`sqlite3.OperationalError: no such function: title_sort`, because
+`books_update_trg` runs `UPDATE books SET sort=title_sort(NEW.title)
+WHERE id=NEW.id AND OLD.title <> NEW.title` after any update where the
+title actually changed. (Updates that don't touch `title`, like
+`update_path`, never hit this - the trigger's guarded inner `UPDATE`
+only gets evaluated for matching rows, and zero rows match when
+`OLD.title = NEW.title`, so `title_sort()` is never actually called.)
+
+The fix: `core/calibre_functions.py:calculate_title_sort()` replicates
+Calibre's real algorithm (move a leading "The"/"A"/"An" to the end -
+"The Hobbit" -> "Hobbit, The" - verified against real `sort` values
+already stored in the bundled sample library), and `DatabaseManager.connect()`
+registers it as `title_sort` on every connection, unconditionally - it's
+free for read-only usage and required for any write that touches
+`books.title`.
+
+**If you add a repository write and hit `no such function: X`**, the
+cause is the same: some Calibre trigger needs `X` registered. Check
+`sqlite_master` for triggers on the table you're writing to
+(`SELECT sql FROM sqlite_master WHERE type='trigger' AND tbl_name=...`)
+before assuming it's a bug in your own SQL.
+
+**Test fixtures must mirror this.** `tests/conftest.py`'s schema
+includes `books_insert_trg`/`books_update_trg` for exactly this reason
+- without them, a test suite exercising only the simplified fixture
+schema would never have caught the `update_title()` bug above, since
+the bug only exists against a database with Calibre's real triggers.
+Any fixture that does its own raw `sqlite3.connect()` to seed data
+(rather than going through `DatabaseManager`) must also call
+`connection.create_function("title_sort", 1, calculate_title_sort)`
+before inserting/updating `books.title`, or `INSERT` itself will fail
+(`books_insert_trg` fires unconditionally, unlike the update trigger).

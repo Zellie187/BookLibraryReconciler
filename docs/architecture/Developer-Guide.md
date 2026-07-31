@@ -15,6 +15,8 @@ library - `requirements.txt` is dev-only (`pytest`, `ruff`, `black`, `mypy`).
 python run.py preview --limit 10
 python run.py health --limit 10 --csv
 python run.py analyze --limit 10 --csv
+python run.py repair --limit 10 --csv
+python run.py repair --apply
 python run.py organize --limit 10 --csv
 python run.py organize --apply
 python run.py search "author=King" "isbn:missing" --sort title --csv
@@ -65,15 +67,17 @@ src/
     app/            Application bootstrap (dependency injection root)
     controllers/    SearchController - parses CLI query syntax into service calls
     config/         paths, settings (Settings/config.json), constants
-    core/           DatabaseManager, schema/database explorers, Timer
+    core/           DatabaseManager (+ calibre_functions.py - title_sort trigger
+                    compatibility, see Database.md), schema/database explorers, Timer
     models/         Book, Author, Series, FormatFile, SearchCriteria (dataclasses)
     builders/       BookBuilder
     repositories/   one class per Calibre table/relationship (see Gateways.md)
     services/       LibraryService, SearchService
     analyzers/      LibraryAnalyzer (read-only stats)
     metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine,
-                    isbn_validator, DuplicateDetector, series_order, LibraryInspector
-    repair/         FileOrganizer, OrganizeApplier, backup
+                    isbn_validator, DuplicateDetector, series_order, LibraryInspector,
+                    text_normalize, AuthorDuplicateFinder
+    repair/         FileOrganizer, OrganizeApplier, MetadataRepairApplier, AuthorMerger, backup
     reports/        ReportWriter + CsvReport/JsonReport/(ExcelReport/HtmlReport stubs)
     providers/      MetadataProvider + calibre/openlibrary/googlebooks/isbndb
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)

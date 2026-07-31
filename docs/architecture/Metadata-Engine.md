@@ -41,6 +41,27 @@ full of these):
 These are heuristics, not proof of an error - `books_with_issues()`
 returns them for a human to review, never to auto-correct.
 
+**`title_contains_by_clause` requires two or more capitalized words
+after "by"** (`BY_CLAUSE_PATTERN`), not just one. This was tightened
+after a real false-positive was found by running `repair --apply`
+against a throwaway copy of the bundled sample and checking the
+result: a single-capitalized-word match flagged `"Married by Morning"`
+(a real Lisa Kleypas title) and `"Dexter by Design"` (a real Jeff
+Lindsay title) as if `"Morning"`/`"Design"` were author names, and the
+repair applier would have silently corrupted both titles to `"Married"`
+/ `"Dexter"`. Requiring 2+ capitalized tokens ("by Rick Riordan") still
+catches every genuine author-echo in the sample and excludes both false
+positives - see `test_metadata_validator.py`'s regression test.
+
+### `text_normalize.py` - shared word-set signatures
+
+`name_signature(text)` reduces a string to a sorted tuple of its
+lowercased words, so `"Berry, Steve"`, `"Steve Berry"`, and `"Berry
+Steve"` all produce the same signature regardless of punctuation or
+word order. Used by both `duplicate_detector.py` (is this title just
+an echo of the author's name?) and `author_duplicate_finder.py` (are
+these two author records the same person?).
+
 ### `isbn_validator.py` - checksum only, not a real-ISBN lookup
 
 `is_valid_isbn()` implements the standard ISBN-10 and ISBN-13 check
@@ -63,11 +84,57 @@ needs a provider lookup (`Providers.md`).
   `providers/` goes live, would help resolve).
 
 `suggest_for_book()`/`suggest_for_library()` return `RepairSuggestion`
-objects. Nothing calls these automatically and nothing writes them
-anywhere - wiring an "apply suggested title" flow is future work, and
-per the project's non-negotiable rule (`Project-Specification.md`) it
-would still require an explicit human approval step, the same way
-`repair/organize_applier.py` does for file moves.
+objects, which `repair/metadata_repair_applier.py`'s `MetadataRepairApplier`
+can turn into real writes - see "Applying repairs" below.
+
+### Applying repairs: `repair/metadata_repair_applier.py`
+
+`MetadataRepairApplier.apply(suggestions)` writes a suggestion's
+`suggested_value` back to `metadata.db` via `LibraryService`, one
+suggestion at a time, never stopping the batch on a single failure
+(same pattern as `organize_applier.py`). Suggestions with no
+`suggested_value` (e.g. `title_matches_author`, where the real title
+is unknown) are always skipped and reported back as "needs manual
+review" - there is nothing to apply.
+
+This is only ever called after `python run.py repair --apply` backs up
+`metadata.db` first (`repair/backup.py`) - see the root `README.md`.
+
+### `author_duplicate_finder.py` - the same author, spelled differently
+
+`AuthorDuplicateFinder.find_duplicates(author_records)` groups Calibre
+`authors` table rows by `name_signature()`, so `"Stephen King"`,
+`"King, Stephen"`, and `"King| Stephen"` (the `|` is itself a common
+import artifact where a comma should be) all collapse into one
+`AuthorDuplicateGroup`. No fuzzy threshold is needed here - it's an
+exact signature match - so unlike `duplicate_detector.py` this needed
+no tuning to be precise: running it against the bundled 7,000-book
+sample's 1,468 distinct author records found 52 groups, and every one
+inspected by hand was a genuine spelling variant of the same person.
+
+The canonical author in each group is deterministically the **lowest
+author id** - there's no signal in the data for which spelling is
+"more correct", so this is just a stable, documented default a human
+can override by reviewing `python run.py repair`'s output before
+`--apply`.
+
+### Applying merges: `repair/author_merger.py`
+
+`AuthorMerger.apply(groups)` calls `LibraryService.merge_authors()` for
+each group, which repoints every book linked to a duplicate author id
+over to the canonical id (dropping the link instead if a book already
+has both - see `repositories/author_repository.py:merge_authors`) and
+deletes the now-unused author rows. Same never-stop-the-batch pattern
+as every other applier in this project.
+
+### The `title_sort` gotcha
+
+`MetadataRepairApplier` (and anything else that writes to
+`books.title`) depends on `DatabaseManager` registering a `title_sort`
+SQL function - Calibre's own `metadata.db` has a trigger that requires
+it. This is documented in detail in `Database.md` because it was found
+as a real bug (not a hypothetical) while building this feature: the
+first version of `update_title()` failed on every single call.
 
 ## `metadata_engine.py` - the facade
 

@@ -34,6 +34,21 @@ def test_flags_by_clause_even_without_linked_author():
     assert any(issue.code == "title_contains_by_clause" for issue in report.issues)
 
 
+def test_does_not_flag_a_real_title_ending_in_by_and_a_single_word():
+
+    # Regression: "Married by Morning" (Lisa Kleypas) and "Dexter by
+    # Design" (Jeff Lindsay) are real titles, not author-echoed ones -
+    # the by-clause pattern must require 2+ capitalized words after
+    # "by" or these get misidentified as "Title by Author".
+    for title in ("Married by Morning", "Dexter by Design"):
+
+        book = Book(id=7, title=title)
+
+        report = MetadataValidator().validate_book(book)
+
+        assert not any(issue.code == "title_contains_by_clause" for issue in report.issues), title
+
+
 def test_flags_empty_title():
 
     book = Book(id=3, title="   ")

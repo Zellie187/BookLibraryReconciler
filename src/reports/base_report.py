@@ -88,6 +88,18 @@ class ReportWriter(ABC):
 
     # ---------------------------------------------------------
 
+    def write_repair_suggestions(self, suggestions, output_path):
+
+        headers = ["book_id", "field", "current_value", "suggested_value", "reason"]
+
+        rows = [
+            [s.book_id, s.field, s.current_value, s.suggested_value, s.reason] for s in suggestions
+        ]
+
+        return self.write_table(headers, rows, output_path)
+
+    # ---------------------------------------------------------
+
     def write_search_results(self, books, output_path, scorer=None):
 
         scorer = scorer or MetadataScorer()

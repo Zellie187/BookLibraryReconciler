@@ -14,6 +14,16 @@ def test_suggests_stripped_title_for_by_clause():
     assert suggestions[0].field == "title"
 
 
+def test_no_suggestion_for_a_real_title_ending_in_by_and_a_single_word():
+
+    # Regression: see the matching test in test_metadata_validator.py.
+    for title in ("Married by Morning", "Dexter by Design"):
+
+        book = Book(id=7, title=title)
+
+        assert MetadataRepair().suggest_for_book(book) == [], title
+
+
 def test_no_suggestion_for_clean_title():
 
     book = Book(id=1, title="Doctor Sleep")
