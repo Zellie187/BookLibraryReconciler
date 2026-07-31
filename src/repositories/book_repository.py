@@ -136,3 +136,16 @@ class BookRepository:
         )
 
         self.db.connection.commit()
+
+    # ---------------------------------------------------------
+
+    def update_has_cover(self, book_id, has_cover):
+
+        cursor = self.db.connection.cursor()
+
+        cursor.execute(
+            "UPDATE books SET has_cover = ? WHERE id = ?",
+            (1 if has_cover else 0, book_id),
+        )
+
+        self.db.connection.commit()

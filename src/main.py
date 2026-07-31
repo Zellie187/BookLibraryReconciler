@@ -21,6 +21,8 @@ from providers.base.provider import ProviderUnavailableError
 from providers.openlibrary.openlibrary_provider import OpenLibraryProvider
 from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
+from repair.cover_applier import CoverApplier
+from repair.cover_finder import CoverFinder
 from repair.file_organizer import FileOrganizer
 from repair.metadata_repair_applier import MetadataRepairApplier
 from repair.organize_applier import OrganizeApplier
@@ -193,9 +195,7 @@ def run_search(args, app):
     controller = SearchController(app.search_service)
 
     try:
-        results = controller.search(
-            args.where, sort_by=args.sort, descending=args.desc, limit=None
-        )
+        results = controller.search(args.where, sort_by=args.sort, descending=args.desc, limit=None)
     except ValueError as error:
         print(f"Error: {error}")
         return
@@ -247,7 +247,9 @@ def run_repair(args, app):
     if applicable:
         print("\nAuto-applicable title repairs:\n")
         for suggestion in applicable[: args.limit]:
-            print(f"  #{suggestion.book_id}: {suggestion.current_value!r} -> {suggestion.suggested_value!r}")
+            print(
+                f"  #{suggestion.book_id}: {suggestion.current_value!r} -> {suggestion.suggested_value!r}"
+            )
 
     if needs_review:
         print("\nNeeds manual review (no automatic suggestion possible):\n")
@@ -381,6 +383,93 @@ def run_lookup(args, app):
             print(f"      Cover: {candidate.cover_url}")
 
 
+def run_covers(args, app):
+    """
+    Book -> Provider -> Download -> Validate -> Preview -> Save. Only
+    the last step writes anything, and only when --apply is given with
+    an explicit choice of candidate (--candidate N or --best).
+    """
+
+    books = app.library_service.get_all_books()
+    book = next((candidate for candidate in books if candidate.id == args.book_id), None)
+
+    if book is None:
+        print(f"No book with id {args.book_id}")
+        return
+
+    provider = OpenLibraryProvider(offline=args.offline)
+
+    try:
+        provider_candidates = provider.find_candidates(book)
+    except ProviderUnavailableError as error:
+        print(f"Open Library unavailable: {error}")
+        provider_candidates = []
+
+    finder = CoverFinder(library_root=app.library_root, user_folder=args.user_folder)
+    candidates = finder.find_candidates(book, provider_candidates=provider_candidates)
+
+    if not candidates:
+        print(f"No cover candidates found for #{book.id} {book.title!r}.")
+        return
+
+    print(f"Cover candidates for #{book.id} {book.title!r}:\n")
+
+    for index, candidate in enumerate(candidates, start=1):
+
+        status = "ok" if candidate.is_valid else "invalid"
+        duplicate_note = " (duplicate of existing cover)" if candidate.is_duplicate else ""
+
+        print(
+            f"  [{index}] {candidate.source:<12} {candidate.width}x{candidate.height} "
+            f"{candidate.format or '-':<6} score={candidate.quality_score:>3} {status}{duplicate_note}"
+        )
+
+        for issue in candidate.issues:
+            print(f"        - {issue}")
+
+    if not args.apply:
+        print(
+            "\nDry run only - nothing was saved. Re-run with --apply --candidate N or --apply --best."
+        )
+        return
+
+    if args.best:
+        eligible = [
+            candidate
+            for candidate in candidates
+            if candidate.is_valid and not candidate.is_duplicate
+        ]
+        if not eligible:
+            print("\nNo valid, non-duplicate candidate to apply.")
+            return
+        chosen = max(eligible, key=lambda candidate: candidate.quality_score)
+    elif args.candidate:
+        if not 1 <= args.candidate <= len(candidates):
+            print(f"\n--candidate must be between 1 and {len(candidates)}")
+            return
+        chosen = candidates[args.candidate - 1]
+    else:
+        print("\n--apply needs either --candidate N or --best")
+        return
+
+    if not chosen.is_valid:
+        print("\nChosen candidate failed validation, not saving:")
+        for issue in chosen.issues:
+            print(f"  - {issue}")
+        return
+
+    print(f"\nBacking up database: {app.database_path}")
+    backup_path = backup_database(app.database_path)
+    print(f"Backup written to  : {backup_path}")
+
+    result = CoverApplier(app.library_root, app.library_service).apply(book, chosen)
+
+    if result.saved:
+        print(f"\nCover saved for #{book.id}.")
+    else:
+        print(f"\nFailed to save cover: {result.error}")
+
+
 def run_organize(args, app):
 
     books = app.library_service.get_all_books()
@@ -474,7 +563,9 @@ def build_parser():
         "--limit", type=int, default=10, help="How many findings to print per section"
     )
     repair_parser.add_argument(
-        "--csv", action="store_true", help="Write the full suggestions to output/repair_suggestions.csv"
+        "--csv",
+        action="store_true",
+        help="Write the full suggestions to output/repair_suggestions.csv",
     )
     repair_parser.add_argument(
         "--apply",
@@ -487,9 +578,13 @@ def build_parser():
         "analyze",
         help="Full library inspection: health score, validation issues, duplicates, series order",
     )
-    analyze_parser.add_argument("--limit", type=int, default=10, help="How many findings to print per section")
     analyze_parser.add_argument(
-        "--csv", action="store_true", help="Write the full per-book analysis to output/library_analysis.csv"
+        "--limit", type=int, default=10, help="How many findings to print per section"
+    )
+    analyze_parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Write the full per-book analysis to output/library_analysis.csv",
     )
     analyze_parser.set_defaults(func=run_analyze)
 
@@ -516,6 +611,33 @@ def build_parser():
         "--offline", action="store_true", help="Only consult the local cache, never the network"
     )
     lookup_parser.set_defaults(func=run_lookup)
+
+    covers_parser = subparsers.add_parser(
+        "covers",
+        help="Find, validate, and (with --apply) save a cover image for a book",
+    )
+    covers_parser.add_argument("book_id", type=int, help="Calibre book id (see `preview`/`search`)")
+    covers_parser.add_argument(
+        "--offline", action="store_true", help="Only consult the local cache, never the network"
+    )
+    covers_parser.add_argument(
+        "--user-folder",
+        type=Path,
+        default=None,
+        help="Optional folder of manually-downloaded covers, named <book_id>.jpg/.png/.webp",
+    )
+    covers_parser.add_argument(
+        "--apply", action="store_true", help="Save the chosen candidate as the book's cover"
+    )
+    covers_parser.add_argument(
+        "--candidate", type=int, default=None, help="1-indexed candidate to save (with --apply)"
+    )
+    covers_parser.add_argument(
+        "--best",
+        action="store_true",
+        help="Save the highest-scoring valid, non-duplicate candidate (with --apply)",
+    )
+    covers_parser.set_defaults(func=run_covers)
 
     search_parser = subparsers.add_parser(
         "search", help="Search the library by any field, with AND-combined filters"

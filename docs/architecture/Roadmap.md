@@ -20,7 +20,8 @@ where explicit build-order choices swapped two entries:
 | v1.2.0 | Metadata analysis and health scoring |
 | v1.3.0 | Metadata repair engine |
 | v1.4.0 | Report engine (CSV, Excel, HTML, JSON, PDF) - spec's v1.5.0, built first |
-| v1.5.0 | Open Library provider and cover downloads - spec's v1.4.0, built after |
+| v1.5.0 | Open Library provider - spec's v1.4.0, built after |
+| v1.5.1 | Cover Download Engine, completing v1.5.0's originally-deferred scope |
 | v2.0.0 | PySide6 desktop application |
 | v2.1.0 | Additional providers (Google Books, Internet Archive, etc.) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -151,7 +152,7 @@ Not done:
       a timer, which implies either the GUI or a separate scheduler
       process
 
-## v1.5.0 - Open Library provider and cover downloads (provider done, covers not)
+## v1.5.0 - Open Library provider (done)
 
 See `Providers.md` for the full write-up, including a real data-quality
 surprise found while testing against the live API (bogus ISBNs like
@@ -176,20 +177,46 @@ surprise found while testing against the live API (bogus ISBNs like
       overwrite is a real policy question, deliberately not answered
       yet (see "Not done" below)
 
-Not done - **Cover Download Engine was explicitly scoped out of this
-pass**, it's a separate, sizable feature (a new Pillow dependency,
-plus image validation/quality-scoring/duplicate-detection/resize logic
-that deserves its own pass rather than being rushed as an addendum):
+Not done - Cover Download Engine was explicitly scoped out of this
+pass and shipped separately as v1.5.1 (below):
 
-- [ ] Cover Download Engine: provider list (Open Library, Google
-      Books, Internet Archive, user folder; Amazon only as
-      metadata-only if legally appropriate), resolution/duplicate/
-      quality checks, image validation, automatic resize, JPG/PNG/WEBP
 - [ ] Repair sources comparison *applying* a chosen candidate's fields
       back to `metadata.db` - `lookup` now makes the comparison real,
       but there's still no write path; this needs a real UI/UX
       decision (per-field approve? whole-candidate approve?) that's
       more naturally a GUI (v2.0.0) concern than a CLI flag
+
+## v1.5.1 - Cover Download Engine (done)
+
+See `Providers.md` for the full write-up. Deliberately scoped out of
+v1.5.0 since it needed its own pass: a new Pillow dependency, plus
+image validation/quality-scoring/duplicate-detection/resize logic.
+
+- [x] `CoverFinder`: candidates from Open Library (`cover_url` already
+      present on a `MetadataCandidate`, so no second round-trip) and an
+      optional local "user folder" (covers named `<book_id>.jpg/.png/.webp`)
+- [x] Image validation (`Pillow`, lazy-imported): corruption check
+      (`verify()` + reopen), format (JPEG/PNG/WEBP), minimum resolution
+      (300x300), aspect ratio (height/width between 1.1 and 2.2 - book
+      covers are portrait, not square), file size bounds
+- [x] Quality scoring (0-100, normalized against a ~1000x1500 target)
+      and duplicate detection (SHA-256 byte-hash against the existing
+      `cover.jpg`, not perceptual/fuzzy hashing - a simpler first pass)
+- [x] `CoverApplier`: resize down to 800px max dimension, convert to
+      JPEG, save as `cover.jpg`, update `has_cover` - always behind the
+      project's backup-first apply pattern
+- [x] CLI: `python run.py covers <book_id> [--offline] [--user-folder PATH]
+      [--apply --best | --apply --candidate N]` - preview by default,
+      apply only with an explicit candidate choice
+- [x] Verified end-to-end against the live Open Library API and a
+      throwaway copy of the sample database (real download, validation,
+      backup, save, and `has_cover` persistence all confirmed)
+
+Not done:
+
+- [ ] Google Books, Internet Archive, and Amazon (metadata-only) as
+      cover sources - blocked on their own provider work (v2.1.0)
+- [ ] Perceptual/fuzzy duplicate detection - exact byte-hash only for now
 
 ## v2.0.0 - PySide6 desktop application
 

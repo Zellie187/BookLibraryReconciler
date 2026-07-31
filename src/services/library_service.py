@@ -68,3 +68,9 @@ class LibraryService:
     def merge_authors(self, canonical_author_id, duplicate_author_ids):
 
         self.book_repository.author_repo.merge_authors(canonical_author_id, duplicate_author_ids)
+
+    # ---------------------------------------------------------
+
+    def update_has_cover(self, book_id, has_cover):
+
+        self.book_repository.update_has_cover(book_id, has_cover)

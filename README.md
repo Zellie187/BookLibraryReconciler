@@ -7,7 +7,8 @@ metadata, and can safely reorganize messy filenames/folders into a clean
 
 Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
-v1.4.0 report engine + v1.5.0 Open Library provider shipped.
+v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
+Download Engine shipped.
 
 ## Requirements
 
@@ -15,9 +16,12 @@ v1.4.0 report engine + v1.5.0 Open Library provider shipped.
 - A Calibre library (a `metadata.db` file). A small sample library
   (`data/metadata.db`, 7,000+ real-world-messy entries) is bundled for
   trying the tool out before pointing it at your own books.
-- Internet access, only for `python run.py lookup` (queries Open
-  Library) — every other command works fully offline. `lookup --offline`
-  restricts it to the local response cache too.
+- Internet access, only for `python run.py lookup` and
+  `python run.py covers` (both query Open Library) — every other
+  command works fully offline. `--offline` on either restricts them to
+  the local response cache.
+- `Pillow` (already in `requirements.txt`) for `python run.py covers` -
+  only imported when that command actually validates or saves an image.
 
 ## Setup
 
@@ -58,6 +62,8 @@ python run.py organize --apply     # back up metadata.db, then actually move fil
 python run.py search "author=King" "isbn:missing" --sort title --limit 20
 python run.py report --type statistics --format excel
 python run.py lookup 1              # compare a book's Calibre metadata against Open Library (read-only)
+python run.py covers 1              # find + validate cover candidates for a book (read-only)
+python run.py covers 1 --apply --best   # back up metadata.db, then save the best candidate as the cover
 ```
 
 Add `--csv` to `health`, `analyze`, `repair`, `organize`, or `search`
@@ -81,6 +87,31 @@ ISBNs, rather than a clean "not found").
 ```bash
 python run.py lookup 1
 python run.py lookup 1 --offline
+```
+
+### How `covers` works
+
+Preview-first, same pattern as `repair`/`organize`: finds cover
+candidates for a book from Open Library (reusing the `cover_url` a
+`lookup`-style call already found - no extra round-trip) and, if given
+`--user-folder PATH`, from local files named `<book_id>.jpg/.png/.webp`
+in that folder. Each candidate is downloaded and validated (format,
+resolution, aspect ratio, corruption, file size) and scored 0-100;
+candidates matching the book's existing cover byte-for-byte are
+flagged as duplicates. Nothing is written by default.
+
+With `--apply`, pick a candidate explicitly - `--best` (highest score
+among valid, non-duplicate candidates) or `--candidate N` (1-indexed,
+from the preview list) - and it backs up `metadata.db`, resizes the
+image to a maximum 800px dimension, saves it as `cover.jpg` in the
+book's folder, and updates `has_cover`. Needs `Pillow`, installed via
+`requirements.txt`.
+
+```bash
+python run.py covers 1
+python run.py covers 1 --offline --user-folder "C:/my-covers"
+python run.py covers 1 --apply --best
+python run.py covers 1 --apply --candidate 2
 ```
 
 ### How `report` works
@@ -181,7 +212,7 @@ Repository Layer    (src/repositories)  -- reads/writes metadata.db
 Builder Layer       (src/builders)      -- assembles Book objects
 Domain Models       (src/models)
 Metadata Engine     (src/metadata)      -- completeness/health scoring, validation, repair suggestions
-Repair Engine       (src/repair)        -- reorganize plan + apply + backup
+Repair Engine       (src/repair)        -- reorganize/repair plan + apply + backup, cover find/apply
 Reports             (src/reports)       -- CSV/JSON/HTML/Excel/PDF behind a common interface
 Providers           (src/providers)     -- pluggable metadata sources (Calibre + Open Library work; Google Books/ISBNdb are stubs)
 Configuration       (src/config)        -- paths, Settings/config.json, constants
@@ -200,8 +231,6 @@ is in `docs/architecture/` - start with `Architecture.md` and
 - Applying a provider's metadata back into `metadata.db` — `lookup`
   shows the comparison; there's no write path yet (a real policy
   question, not just an implementation gap — see `docs/architecture/Roadmap.md`).
-- Cover Download Engine (needs Pillow + image validation/dedup/resize
-  — deliberately scoped out of the Open Library work, see Roadmap.md).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
 - GUI, duplicate *file* detection (duplicate *books* by ISBN/title and

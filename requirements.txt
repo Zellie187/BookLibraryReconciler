@@ -8,3 +8,7 @@ mypy>=1.10
 # stdlib-only); imported lazily, so the rest of the app runs without them
 openpyxl>=3.1
 fpdf2>=2.7
+
+# Cover Download Engine - cover image validation/resizing; imported lazily,
+# so the rest of the app runs without it
+Pillow>=10.0

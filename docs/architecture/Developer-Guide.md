@@ -7,10 +7,11 @@ pip install -r requirements.txt
 ```
 
 Requires Python 3.14+. `requirements.txt` has the dev tools (`pytest`,
-`ruff`, `black`, `mypy`) plus two optional-but-included Report Engine
-dependencies (`openpyxl`, `fpdf2`) needed only for `report --format
-excel`/`pdf` - everything else in the app (CSV/JSON/HTML reports
-included) is stdlib-only. See `Reports.md`.
+`ruff`, `black`, `mypy`) plus optional-but-included dependencies needed
+only by specific commands: `openpyxl`/`fpdf2` for `report --format
+excel`/`pdf` (see `Reports.md`), and `Pillow` for `covers` (image
+validation/resize, see `Providers.md`) - everything else in the app is
+stdlib-only.
 
 ## Running the CLI
 
@@ -85,7 +86,8 @@ src/
     metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine,
                     isbn_validator, DuplicateDetector, series_order, LibraryInspector,
                     text_normalize, AuthorDuplicateFinder
-    repair/         FileOrganizer, OrganizeApplier, MetadataRepairApplier, AuthorMerger, backup
+    repair/         FileOrganizer, OrganizeApplier, MetadataRepairApplier, AuthorMerger,
+                    CoverFinder, CoverApplier, backup
     reports/        ReportWriter + CsvReport/JsonReport/HtmlReport/ExcelReport/PdfReport
                     (see Reports.md)
     providers/      MetadataProvider, ProviderUnavailableError, ResponseCache

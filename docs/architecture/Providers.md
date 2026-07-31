@@ -129,6 +129,56 @@ because deciding *which* fields to trust and overwrite is a real policy
 question the project hasn't answered yet (see `Roadmap.md`). Add
 `--offline` to only consult the cache.
 
+## Cover Download Engine (`src/repair/cover_finder.py`, `cover_applier.py`)
+
+Deliberately shipped as its own release (v1.5.1) after the Open
+Library provider, since it needed a new dependency (Pillow) and its
+own image-handling logic rather than being rushed as part of v1.5.0.
+
+`CoverFinder` gathers candidate cover images from two sources and
+never writes anything - it only downloads, validates, and scores:
+
+- **Open Library** - reuses the `cover_url` a provider candidate
+  already carries (from `OpenLibraryProvider.find_candidates()`), so a
+  `covers` call that already ran a `lookup`-style provider query
+  doesn't pay for a second HTTP round-trip.
+- **User folder** (optional, `--user-folder PATH`) - local files named
+  `<book_id>.jpg`/`.png`/`.webp`, for covers found by hand outside the
+  tool. Google Books, Internet Archive, and Amazon (metadata-only)
+  remain unimplemented, blocked on their own provider work (v2.1.0).
+
+Each candidate is downloaded via the same dependency-injected
+`fetcher` pattern as `OpenLibraryProvider`, then validated with
+`Pillow` (lazy-imported, so the app runs without it until a `covers`
+call actually needs it):
+
+- Corruption check: `Image.verify()`, then reopen (verify invalidates
+  the image object for further use).
+- Format must be JPEG, PNG, or WEBP.
+- Minimum resolution 300x300; aspect ratio (height/width) between 1.1
+  and 2.2 - rejects square or extreme images, since book covers are
+  reliably portrait.
+- File size between 100 bytes and 20 MB (catches both truncated
+  downloads and mistaken non-image responses).
+- A 0-100 quality score, normalized against a ~1000x1500-pixel target
+  resolution - not a validation cutoff, just a ranking signal for
+  `--best`.
+- Duplicate flag: SHA-256 byte-hash of the candidate compared against
+  the book's existing `cover.jpg`, if any - exact-match only, not
+  perceptual/fuzzy hashing (a simpler first pass; see `Roadmap.md`).
+
+`CoverApplier` is the only thing that writes: resizes the chosen
+candidate down to an 800px max dimension, converts to JPEG, saves it
+as `cover.jpg` in the book's folder, and updates `has_cover` in
+`metadata.db`. Same backup-first apply pattern as `repair --apply` and
+`organize --apply` (`repair/backup.py`, called before any write).
+
+```
+python run.py covers <book_id>                    # preview only
+python run.py covers <book_id> --apply --best      # save the top-scoring valid, non-duplicate candidate
+python run.py covers <book_id> --apply --candidate 2   # save a specific candidate from the preview list
+```
+
 ## Adding a real provider
 
 1. Create `providers/<name>/<name>_provider.py` subclassing `MetadataProvider`.

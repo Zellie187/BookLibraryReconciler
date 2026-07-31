@@ -4,6 +4,48 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.5.1 - Cover Download Engine
+
+Completes the scope explicitly deferred out of v1.5.0.
+
+### Added
+- `repair/cover_finder.py` - `CoverFinder`: candidates from Open
+  Library (`cover_url` already present on a `MetadataCandidate` from
+  `OpenLibraryProvider.find_candidates()`, so no second round-trip)
+  and an optional local "user folder" (covers named
+  `<book_id>.jpg`/`.png`/`.webp`).
+- Image validation (`Pillow`, lazy-imported so the rest of the app
+  runs without it): corruption check (`Image.verify()` + reopen),
+  supported format (JPEG/PNG/WEBP), minimum resolution (300x300),
+  aspect ratio (height/width between 1.1 and 2.2 - book covers are
+  portrait, not square), file size bounds (100 bytes - 20 MB).
+- Quality scoring (0-100, normalized against a ~1000x1500-pixel
+  target) and duplicate detection (SHA-256 byte-hash of the candidate
+  against the book's existing `cover.jpg` - exact-match only, not
+  perceptual/fuzzy hashing).
+- `repair/cover_applier.py` - `CoverApplier`: resizes down to an
+  800px max dimension, converts to JPEG, saves as `cover.jpg`, and
+  updates `has_cover` in `metadata.db`. Follows the project's
+  backup-first apply pattern (`repair/backup.py`), same as
+  `organize --apply` and `repair --apply`.
+- `BookRepository.update_has_cover()` / `LibraryService.update_has_cover()`.
+- CLI: `python run.py covers <book_id> [--offline] [--user-folder PATH]
+  [--apply --best | --apply --candidate N]` - preview by default;
+  `--apply` needs an explicit candidate choice (highest-scoring valid
+  non-duplicate via `--best`, or a specific 1-indexed `--candidate N`).
+- `requirements.txt`: added `Pillow>=10.0`.
+- Verified end-to-end against the live Open Library API and a
+  throwaway copy of the sample database: real cover downloaded,
+  validated, database backed up, `cover.jpg` written, and `has_cover`
+  persisted correctly on a fresh read.
+
+### Not included
+- Google Books, Internet Archive, and Amazon (metadata-only) as cover
+  sources - blocked on their own provider work (v2.1.0).
+- Perceptual/fuzzy duplicate detection - exact byte-hash only for now.
+
+---
+
 ## Version 1.5.0 - Open Library provider
 
 The spec's Open Library provider scope, built after the Report Engine
