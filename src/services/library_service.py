@@ -33,3 +33,21 @@ class LibraryService:
         print(f"\nLoaded {len(books):,} books in {elapsed:.3f} seconds")
 
         return books
+
+    # ---------------------------------------------------------
+
+    def get_all_books(self):
+
+        return self.get_books(limit=None)
+
+    # ---------------------------------------------------------
+
+    def update_book_path(self, book_id, new_path):
+
+        self.book_repository.update_path(book_id, new_path)
+
+    # ---------------------------------------------------------
+
+    def rename_format(self, book_id, old_format, new_name):
+
+        self.book_repository.format_repo.rename_format(book_id, old_format, new_name)

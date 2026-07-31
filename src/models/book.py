@@ -7,6 +7,7 @@ Represents a single Calibre book.
 from dataclasses import dataclass, field
 
 from models.author import Author
+from models.format_file import FormatFile
 from models.series import Series
 
 
@@ -45,6 +46,7 @@ class Book:
     rating: int = 0
 
     formats: list[str] = field(default_factory=list)
+    format_files: list[FormatFile] = field(default_factory=list)
 
     has_cover: bool = False
 

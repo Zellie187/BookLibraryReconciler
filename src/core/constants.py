@@ -8,7 +8,7 @@ Application Constants
 
 APP_NAME = "Book Library Reconciler"
 
-VERSION = "0.4"
+VERSION = "1.0.0-alpha"
 
 # --------------------------------------------------
 # Database

@@ -1,7 +1,7 @@
 """
 Library Analyzer
 
-Analyses the loaded library and produces useful statistics.
+Analyses a loaded set of Book objects and produces useful statistics.
 """
 
 from collections import Counter
@@ -26,10 +26,8 @@ class LibraryAnalyzer:
 
         for book in self.books:
 
-            if book["authors"]:
-
-                for author in book["authors"].split("&"):
-                    authors.add(author.strip())
+            for author in book.authors:
+                authors.add(author.name)
 
         return len(authors)
 
@@ -41,8 +39,8 @@ class LibraryAnalyzer:
 
         for book in self.books:
 
-            if book["series"]:
-                series.add(book["series"])
+            if book.series is not None:
+                series.add(book.series.name)
 
         return len(series)
 
@@ -50,40 +48,25 @@ class LibraryAnalyzer:
 
     def books_missing_isbn(self):
 
-        count = 0
-
-        for book in self.books:
-
-            if not book["isbn"]:
-                count += 1
-
-        return count
+        return sum(1 for book in self.books if not book.isbn)
 
     # -------------------------------------------------
 
     def books_missing_series(self):
 
-        count = 0
-
-        for book in self.books:
-
-            if not book["series"]:
-                count += 1
-
-        return count
+        return sum(1 for book in self.books if book.series is None)
 
     # -------------------------------------------------
 
     def books_missing_comments(self):
 
-        count = 0
+        return sum(1 for book in self.books if not book.comments)
 
-        for book in self.books:
+    # -------------------------------------------------
 
-            if not book["comments"]:
-                count += 1
+    def books_missing_cover(self):
 
-        return count
+        return sum(1 for book in self.books if not book.has_cover)
 
     # -------------------------------------------------
 
@@ -93,9 +76,7 @@ class LibraryAnalyzer:
 
         for book in self.books:
 
-            if book["authors"]:
-
-                for author in book["authors"].split("&"):
-                    counter[author.strip()] += 1
+            for author in book.authors:
+                counter[author.name] += 1
 
         return counter.most_common(limit)
