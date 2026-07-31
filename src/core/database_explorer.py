@@ -4,6 +4,7 @@ Database Explorer
 Provides tools for exploring the SQLite database.
 """
 
+
 class DatabaseExplorer:
 
     def __init__(self, database_manager):

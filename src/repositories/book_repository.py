@@ -3,7 +3,6 @@ Book Repository
 """
 
 from builders.book_builder import BookBuilder
-
 from repositories.author_repository import AuthorRepository
 from repositories.comment_repository import CommentRepository
 from repositories.format_repository import FormatRepository
@@ -88,8 +87,7 @@ class BookRepository:
             builder = BookBuilder()
 
             book = (
-                builder
-                .set_basic_info(row)
+                builder.set_basic_info(row)
                 .add_authors(author_cache.get(row["id"], []))
                 .add_identifiers(identifier_cache.get(row["id"], {}))
                 .set_series(self.series_repo.get_series_for_book(row["id"]))

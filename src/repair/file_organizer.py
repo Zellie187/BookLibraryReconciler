@@ -84,12 +84,8 @@ class FileOrganizer:
 
         for book in sorted(books, key=lambda b: b.id):
 
-            author = sanitize_component(
-                book.authors[0].name if book.authors else "Unknown"
-            )
-            title = sanitize_component(
-                book.title, fallback=f"Untitled ({book.id})"
-            )
+            author = sanitize_component(book.authors[0].name if book.authors else "Unknown")
+            title = sanitize_component(book.title, fallback=f"Untitled ({book.id})")
 
             proposed_path = f"{author}/{title}"
             folder_key = proposed_path.lower()

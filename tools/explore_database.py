@@ -21,9 +21,9 @@ sys.path.insert(0, str(SRC_FOLDER))
 
 # ----------------------------------------------------
 
-from core.config import METADATA_DB
+from config.constants import LINE
+from config.settings import METADATA_DB
 from core.database import DatabaseManager
-from core.constants import LINE
 
 
 def main():

@@ -3,14 +3,13 @@ Library Service
 """
 
 from core.timer import Timer
-from repositories.book_repository import BookRepository
 
 
 class LibraryService:
 
-    def __init__(self, database_manager):
+    def __init__(self, book_repository):
 
-        self.book_repository = BookRepository(database_manager)
+        self.book_repository = book_repository
 
     # ---------------------------------------------------------
 

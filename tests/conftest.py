@@ -165,25 +165,33 @@ def seeded_db(calibre_db_path):
         "'Unknown', 'Unknown/The Maze of Bones by Rick Riordan (2)', 'uuid-2', 0)"
     )
 
-    cursor.execute("INSERT INTO authors (id, name, sort, link) VALUES (1, 'Stephen King', 'King, Stephen', '')")
+    cursor.execute(
+        "INSERT INTO authors (id, name, sort, link) VALUES (1, 'Stephen King', 'King, Stephen', '')"
+    )
     cursor.execute("INSERT INTO books_authors_link (book, author) VALUES (1, 1)")
 
     cursor.execute("INSERT INTO identifiers (book, type, val) VALUES (1, 'isbn', '9781501144525')")
     cursor.execute("INSERT INTO comments (book, text) VALUES (1, 'A haunted boy grows up.')")
 
-    cursor.execute("INSERT INTO publishers (id, name, sort, link) VALUES (1, 'Scribner', 'Scribner', '')")
+    cursor.execute(
+        "INSERT INTO publishers (id, name, sort, link) VALUES (1, 'Scribner', 'Scribner', '')"
+    )
     cursor.execute("INSERT INTO books_publishers_link (book, publisher) VALUES (1, 1)")
 
     cursor.execute("INSERT INTO ratings (id, rating, link) VALUES (1, 8, '')")
     cursor.execute("INSERT INTO books_ratings_link (book, rating) VALUES (1, 1)")
 
     cursor.execute("INSERT INTO languages (id, lang_code, link) VALUES (1, 'eng', '')")
-    cursor.execute("INSERT INTO books_languages_link (book, lang_code, item_order) VALUES (1, 1, 0)")
+    cursor.execute(
+        "INSERT INTO books_languages_link (book, lang_code, item_order) VALUES (1, 1, 0)"
+    )
 
     cursor.execute("INSERT INTO tags (id, name, link) VALUES (1, 'Horror', '')")
     cursor.execute("INSERT INTO books_tags_link (book, tag) VALUES (1, 1)")
 
-    cursor.execute("INSERT INTO series (id, name, sort, link) VALUES (1, 'The Shining', 'Shining, The', '')")
+    cursor.execute(
+        "INSERT INTO series (id, name, sort, link) VALUES (1, 'The Shining', 'Shining, The', '')"
+    )
     cursor.execute("INSERT INTO books_series_link (book, series) VALUES (1, 1)")
 
     cursor.execute(

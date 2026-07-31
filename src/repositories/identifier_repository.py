@@ -25,8 +25,7 @@ class IdentifierRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 book,
@@ -34,8 +33,7 @@ class IdentifierRepository:
                 val
 
             FROM identifiers
-            """
-        )
+            """)
 
         books = defaultdict(dict)
 

@@ -28,8 +28,7 @@ class RatingRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 brl.book,
@@ -42,8 +41,7 @@ class RatingRepository:
                 ON r.id = brl.rating
 
             WHERE r.rating > 0
-            """
-        )
+            """)
 
         books = defaultdict(int)
 

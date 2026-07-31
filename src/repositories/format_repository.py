@@ -28,8 +28,7 @@ class FormatRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 book,
@@ -40,8 +39,7 @@ class FormatRepository:
             FROM data
 
             ORDER BY book
-            """
-        )
+            """)
 
         books = defaultdict(list)
 

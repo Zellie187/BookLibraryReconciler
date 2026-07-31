@@ -18,9 +18,7 @@ def backup_database(database_path):
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    backup_path = database_path.with_name(
-        f"{database_path.stem}.{timestamp}.bak"
-    )
+    backup_path = database_path.with_name(f"{database_path.stem}.{timestamp}.bak")
 
     shutil.copy2(database_path, backup_path)
 

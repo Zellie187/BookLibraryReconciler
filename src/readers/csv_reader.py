@@ -18,12 +18,7 @@ class CSVReader:
         if not self.csv_path.exists():
             raise FileNotFoundError(f"CSV file not found:\n{self.csv_path}")
 
-        with open(
-            self.csv_path,
-            "r",
-            encoding="utf-8-sig",
-            newline=""
-        ) as csv_file:
+        with open(self.csv_path, "r", encoding="utf-8-sig", newline="") as csv_file:
 
             reader = csv.DictReader(csv_file)
 

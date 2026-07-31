@@ -25,8 +25,7 @@ class TagRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 btl.book,
@@ -39,8 +38,7 @@ class TagRepository:
                 ON t.id = btl.tag
 
             ORDER BY btl.book, t.name
-            """
-        )
+            """)
 
         books = defaultdict(list)
 

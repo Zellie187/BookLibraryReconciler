@@ -63,7 +63,8 @@ class CalibreReader:
 
         cursor = self.connection.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 id,
                 title,
@@ -73,6 +74,8 @@ class CalibreReader:
             FROM books
             ORDER BY id
             LIMIT ?
-        """, (limit,))
+        """,
+            (limit,),
+        )
 
         return cursor.fetchall()

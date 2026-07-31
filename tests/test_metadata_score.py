@@ -1,4 +1,4 @@
-from metadata.health_score import MetadataScorer
+from metadata.metadata_score import MetadataScorer
 from repositories.book_repository import BookRepository
 
 

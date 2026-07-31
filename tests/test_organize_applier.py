@@ -17,7 +17,9 @@ def test_apply_moves_folder_and_renames_formats(tmp_path):
         current_path="Stephen King/Doctor Sleep (1)",
         proposed_path="Stephen King/Doctor Sleep",
         format_renames=[
-            FormatRename(format="EPUB", old_name="Doctor Sleep - Stephen King", new_name="Doctor Sleep")
+            FormatRename(
+                format="EPUB", old_name="Doctor Sleep - Stephen King", new_name="Doctor Sleep"
+            )
         ],
     )
 

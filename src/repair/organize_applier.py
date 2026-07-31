@@ -92,9 +92,7 @@ class OrganizeApplier:
                 result.error = f"Format rename failed: {error}"
                 continue
 
-            self.library_service.rename_format(
-                plan.book_id, rename.format, rename.new_name
-            )
+            self.library_service.rename_format(plan.book_id, rename.format, rename.new_name)
 
             result.renamed_formats.append(rename.new_name)
 

@@ -25,8 +25,7 @@ class AuthorRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 bal.book,
@@ -43,8 +42,7 @@ class AuthorRepository:
                 ON a.id = bal.author
 
             ORDER BY bal.book
-            """
-        )
+            """)
 
         books = defaultdict(list)
 

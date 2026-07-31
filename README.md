@@ -79,25 +79,37 @@ pytest
 ## Architecture
 
 ```
-Application Layer   (src/main.py)
+Application Layer   (src/app)           -- bootstrap + dependency injection
 Service Layer       (src/services)
 Repository Layer    (src/repositories)  -- reads/writes metadata.db
 Builder Layer       (src/builders)      -- assembles Book objects
 Domain Models       (src/models)
-Metadata Engine     (src/metadata)      -- completeness/health scoring
+Metadata Engine     (src/metadata)      -- completeness/health scoring, validation, repair suggestions
 Repair Engine       (src/repair)        -- reorganize plan + apply + backup
-Reports             (src/reports)       -- CSV exports
+Reports             (src/reports)       -- CSV/JSON exports behind a common interface
+Providers           (src/providers)     -- pluggable metadata sources (Calibre works today; others are stubs)
+Configuration       (src/config)        -- paths, Settings/config.json, constants
 ```
+
+Full write-up, including why each layer exists and how to extend it,
+is in `docs/architecture/` - start with `Architecture.md` and
+`Developer-Guide.md`.
 
 ## Not implemented yet
 
 - External metadata providers (Open Library, Google Books, ISBNdb) —
-  stubs exist in `src/services/` but are not wired up (planned v1.2.0).
+  interface-conformant stubs exist in `src/providers/` but raise
+  `NotImplementedError` (planned v1.2.0). Calibre itself is wired up
+  as a working provider (`src/providers/calibre/`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
 - Duplicate detection, cover-fetching, Excel/HTML reports, GUI — see
-  the version roadmap in `CHANGELOG.md` (v1.1.0 and later).
+  `docs/architecture/Roadmap.md`.
+
+## Contributing
+
+See `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
 
 ## License
 
-MIT
+MIT — see `LICENSE`.

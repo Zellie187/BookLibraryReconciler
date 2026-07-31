@@ -25,8 +25,7 @@ class LanguageRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 bll.book,
@@ -39,8 +38,7 @@ class LanguageRepository:
                 ON l.id = bll.lang_code
 
             ORDER BY bll.book, bll.item_order
-            """
-        )
+            """)
 
         books = defaultdict(list)
 

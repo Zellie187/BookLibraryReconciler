@@ -25,8 +25,7 @@ class PublisherRepository:
 
         cursor = self.db.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT
 
                 bpl.book,
@@ -39,8 +38,7 @@ class PublisherRepository:
                 ON p.id = bpl.publisher
 
             ORDER BY bpl.book
-            """
-        )
+            """)
 
         books = defaultdict(str)
 

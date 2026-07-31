@@ -6,13 +6,43 @@ All notable changes to this project will be documented here.
 
 ## Version 1.0.0-alpha
 
-### Added
+### Added (architecture pass)
+- `docs/architecture/` - eleven reference docs (Project-Specification,
+  Architecture, Database, Metadata-Engine, Providers, Gateways,
+  Builders, Services, GUI, Roadmap, Developer-Guide).
+- GitHub community files: `LICENSE` (MIT), `CONTRIBUTING.md`,
+  `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/`,
+  `.github/PULL_REQUEST_TEMPLATE.md`, `.github/workflows/python.yml`
+  (pytest + ruff + black + mypy on every push/PR to `main`).
+- `src/config/` package (`paths.py`, `settings.py`, `database.py`,
+  `providers.py`, `constants.py`), replacing the single
+  `core/config.py` + `core/constants.py`.
+- `src/app/application.py` - the single place that wires
+  `DatabaseManager` -> `BookRepository` -> `LibraryService` together.
+  `LibraryService` now takes an injected `BookRepository` instead of
+  constructing one from a `database_manager` itself.
+- `src/metadata/metadata_validator.py` (heuristic checks: title matches
+  author name, title contains a "by <author>" clause, empty title,
+  series_index of 0) and `metadata_repair.py` (non-destructive
+  suggested field corrections) and `metadata_engine.py` (facade tying
+  scoring + validation + repair suggestions together).
+  `health_score.py` renamed to `metadata_score.py`.
+- `src/providers/` plugin architecture: `MetadataProvider` /
+  `MetadataCandidate` base interface, a working `CalibreProvider`, and
+  conforming stubs for Open Library / Google Books / ISBNdb (replacing
+  the old empty flat files under `src/services/`).
+- `src/reports/base_report.py` common `ReportWriter` interface;
+  `csv_report.py` and `json_report.py` are real, `excel_report.py` and
+  `html_report.py` are conforming stubs (replacing `report_generator.py`).
+- `resources/{icons,images,themes,fonts}/` scaffold for the future GUI.
+
+### Added (first working slice)
 - Repositories (gateway layer) for publishers, ratings, languages, tags,
   and on-disk formats, completing the entity list from the dev spec.
 - `BookBuilder` now assembles the full `Book` object: publisher, pubdate,
   rating, languages, tags, and format files (with sizes).
-- Metadata Engine (`src/metadata/health_score.py`): per-book completeness
-  scoring (title/author/ISBN/cover/description) plus library averages.
+- Metadata Engine: per-book completeness scoring
+  (title/author/ISBN/cover/description) plus library averages.
 - Repair Engine first slice (`src/repair/`): `FileOrganizer` computes an
   `Author/Title` reorganize plan from existing Calibre metadata,
   `OrganizeApplier` executes it (move folders, rename format files,

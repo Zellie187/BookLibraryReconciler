@@ -6,6 +6,11 @@ testpaths = ["tests"]
 line-length = 100
 target-version = "py314"
 
+[tool.ruff.lint]
+# DTZ005: datetime.now() without tz - backup filenames intentionally
+# use local wall-clock time, not UTC.
+ignore = ["DTZ005"]
+
 [tool.black]
 line-length = 100
 target-version = ["py314"]

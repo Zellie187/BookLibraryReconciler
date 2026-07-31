@@ -4,6 +4,7 @@ Schema Explorer
 Provides methods for inspecting a SQLite database.
 """
 
+
 class SchemaExplorer:
 
     def __init__(self, database_manager):
