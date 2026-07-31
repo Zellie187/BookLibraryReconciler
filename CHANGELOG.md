@@ -4,6 +4,43 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.4.0 - Report engine
+
+Note: the spec's "Version 1.x Roadmap" document assigns this content
+to v1.5.0 and the Open Library provider to v1.4.0. This project built
+the Report Engine first (explicit choice), so version *numbers* here
+track actual ship order - see `docs/architecture/Roadmap.md`.
+
+### Added
+- `analyzers/library_statistics.py` - `LibraryStatistics`: books per
+  author/series/language/year, largest/smallest books by format size.
+  Long-format output (`category, label, value`) rather than one
+  section per breakdown, so no report-format interface changes were
+  needed. Excludes Calibre's `"0101-01-01"` unknown-pubdate sentinel
+  from the per-year breakdown (7,028 of 7,029 sample books have it)
+  and zero-size books from "smallest," the same way earlier work
+  excluded the `series_index == 0` sentinel.
+- Real `ExcelReport` (`openpyxl`, bold header row, autosized columns)
+  and `HtmlReport` (stdlib-only, `html.escape()`d self-contained page),
+  replacing their `NotImplementedError` stubs.
+- New `PdfReport` (`fpdf2`) - a plain tabular dump (fixed column
+  widths, truncated long values), not a polished layout.
+- Four report presets on `ReportWriter`: `write_library_health_summary`
+  (library-wide counts, not per-book), `write_duplicate_report`
+  (isbn/title/author groups), `write_series_report`,
+  `write_statistics_report`.
+- CLI: `python run.py report --type health|duplicates|series|statistics
+  --format csv|json|excel|html|pdf [--output PATH]`.
+- `openpyxl`/`fpdf2` added to `requirements.txt` (both lazy-imported by
+  their respective writers, so everything else still runs without them).
+- Verified against the bundled 7,000-book sample across all 20
+  type/format combinations: 1,468 authors + 2,365 series produce a
+  ~3,855-row statistics table at sane file sizes in every format
+  (142KB CSV up to 377KB JSON).
+- `docs/architecture/Reports.md`.
+
+---
+
 ## Version 1.3.0 - Metadata repair engine
 
 ### Added

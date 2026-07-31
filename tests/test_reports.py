@@ -1,13 +1,12 @@
 import json
 
-import pytest
-
 from metadata.metadata_score import HealthReport
 from repair.file_organizer import FormatRename, OrganizePlan
 from reports.csv_report import CsvReport
 from reports.excel_report import ExcelReport
 from reports.html_report import HtmlReport
 from reports.json_report import JsonReport
+from reports.pdf_report import PdfReport
 
 
 def make_plan():
@@ -64,13 +63,51 @@ def test_json_report_writes_organize_plan(tmp_path):
     assert records[0]["proposed_path"] == "Stephen King/Doctor Sleep"
 
 
-def test_excel_report_not_implemented(tmp_path):
+def test_excel_report_writes_a_workbook(tmp_path):
 
-    with pytest.raises(NotImplementedError):
-        ExcelReport().write_organize_plan([make_plan()], tmp_path / "plan.xlsx")
+    output_path = ExcelReport().write_organize_plan([make_plan()], tmp_path / "plan.xlsx")
+
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(output_path)
+    sheet = workbook.active
+
+    header_row = [cell.value for cell in sheet[1]]
+    assert header_row == [
+        "book_id",
+        "title",
+        "author",
+        "current_path",
+        "proposed_path",
+        "format_renames",
+    ]
+    assert sheet[1][0].font.bold is True
+
+    data_row = [cell.value for cell in sheet[2]]
+    assert data_row[0] == 1
+    assert data_row[4] == "Stephen King/Doctor Sleep"
 
 
-def test_html_report_not_implemented(tmp_path):
+def test_html_report_writes_an_escaped_table(tmp_path):
 
-    with pytest.raises(NotImplementedError):
-        HtmlReport().write_organize_plan([make_plan()], tmp_path / "plan.html")
+    plan = make_plan()
+    plan.title = "<script>alert(1)</script>"
+
+    output_path = HtmlReport().write_organize_plan([plan], tmp_path / "plan.html")
+
+    content = output_path.read_text(encoding="utf-8")
+
+    assert "<table>" in content
+    assert "<th>book_id</th>" in content
+    assert "&lt;script&gt;" in content
+    assert "<script>alert(1)</script>" not in content
+
+
+def test_pdf_report_writes_a_real_pdf_file(tmp_path):
+
+    output_path = PdfReport().write_organize_plan([make_plan()], tmp_path / "plan.pdf")
+
+    content = output_path.read_bytes()
+
+    assert output_path.exists()
+    assert content.startswith(b"%PDF")

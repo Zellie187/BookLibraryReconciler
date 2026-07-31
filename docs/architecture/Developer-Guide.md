@@ -6,8 +6,11 @@
 pip install -r requirements.txt
 ```
 
-Requires Python 3.14+. No runtime dependencies outside the standard
-library - `requirements.txt` is dev-only (`pytest`, `ruff`, `black`, `mypy`).
+Requires Python 3.14+. `requirements.txt` has the dev tools (`pytest`,
+`ruff`, `black`, `mypy`) plus two optional-but-included Report Engine
+dependencies (`openpyxl`, `fpdf2`) needed only for `report --format
+excel`/`pdf` - everything else in the app (CSV/JSON/HTML reports
+included) is stdlib-only. See `Reports.md`.
 
 ## Running the CLI
 
@@ -20,6 +23,7 @@ python run.py repair --apply
 python run.py organize --limit 10 --csv
 python run.py organize --apply
 python run.py search "author=King" "isbn:missing" --sort title --csv
+python run.py report --type statistics --format excel
 ```
 
 By default this reads the bundled sample library in `data/` (7,029
@@ -73,12 +77,13 @@ src/
     builders/       BookBuilder
     repositories/   one class per Calibre table/relationship (see Gateways.md)
     services/       LibraryService, SearchService
-    analyzers/      LibraryAnalyzer (read-only stats)
+    analyzers/      LibraryAnalyzer, LibraryStatistics (read-only stats)
     metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine,
                     isbn_validator, DuplicateDetector, series_order, LibraryInspector,
                     text_normalize, AuthorDuplicateFinder
     repair/         FileOrganizer, OrganizeApplier, MetadataRepairApplier, AuthorMerger, backup
-    reports/        ReportWriter + CsvReport/JsonReport/(ExcelReport/HtmlReport stubs)
+    reports/        ReportWriter + CsvReport/JsonReport/HtmlReport/ExcelReport/PdfReport
+                    (see Reports.md)
     providers/      MetadataProvider + calibre/openlibrary/googlebooks/isbndb
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)
     utils/          logger.py (not yet wired into the CLI)
@@ -97,7 +102,8 @@ resources/          future GUI assets (icons/images/themes/fonts)
 | Add a completeness/validity check | `metadata/metadata_score.py` or `metadata_validator.py` - see `Metadata-Engine.md` |
 | Add a library-wide check (duplicates, series order, ...) | `metadata/` (own module) + wire into `LibraryInspector` and `run_analyze()` |
 | Add an external metadata source | `providers/` - see `Providers.md` |
-| Add an output format | `reports/` - subclass `ReportWriter`, implement `write_table()` |
+| Add an output format | `reports/` - subclass `ReportWriter`, implement `write_table()` - see `Reports.md` |
+| Add a report preset | `reports/base_report.py` - add a `write_*(...)` method producing `(headers, rows)`, then wire it into `run_report()`'s `--type` choices |
 | Add a filesystem operation | `repair/` - must be preview-first with an explicit apply step and a backup, like `organize_applier.py` |
 | Add a CLI command | `src/main.py` - add a subparser + `run_*` function that receives `(args, app)` |
 

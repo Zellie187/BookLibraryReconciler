@@ -6,7 +6,8 @@ metadata, and can safely reorganize messy filenames/folders into a clean
 `Author/Title` layout without breaking Calibre's own database.
 
 Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
-metadata analysis/health scoring + v1.3.0 metadata repair engine shipped.
+metadata analysis/health scoring + v1.3.0 metadata repair engine +
+v1.4.0 report engine shipped.
 
 ## Requirements
 
@@ -52,12 +53,29 @@ python run.py repair --apply       # back up metadata.db, then rewrite titles + 
 python run.py organize --limit 10  # preview a reorganize, changes nothing
 python run.py organize --apply     # back up metadata.db, then actually move files
 python run.py search "author=King" "isbn:missing" --sort title --limit 20
+python run.py report --type statistics --format excel
 ```
 
 Add `--csv` to `health`, `analyze`, `repair`, `organize`, or `search`
 to write the full results to `output/health_report.csv` /
 `output/library_analysis.csv` / `output/repair_suggestions.csv` /
 `output/organize_plan.csv` / `output/search_results.csv`.
+
+### How `report` works
+
+Four report presets - `--type health|duplicates|series|statistics` -
+each available in five formats - `--format csv|json|excel|html|pdf`
+(default `csv`, output to `output/<type>_report.<ext>` unless
+`--output` is given). CSV/JSON/HTML need nothing extra; Excel and PDF
+need `openpyxl`/`fpdf2` (already in `requirements.txt`), only imported
+when you actually pick those formats. See
+`docs/architecture/Reports.md` for exactly what each preset contains.
+
+```bash
+python run.py report --type health --format html
+python run.py report --type duplicates --format excel
+python run.py report --type statistics --format pdf --output my_stats.pdf
+```
 
 ### How `repair` works
 
@@ -142,7 +160,7 @@ Builder Layer       (src/builders)      -- assembles Book objects
 Domain Models       (src/models)
 Metadata Engine     (src/metadata)      -- completeness/health scoring, validation, repair suggestions
 Repair Engine       (src/repair)        -- reorganize plan + apply + backup
-Reports             (src/reports)       -- CSV/JSON exports behind a common interface
+Reports             (src/reports)       -- CSV/JSON/HTML/Excel/PDF behind a common interface
 Providers           (src/providers)     -- pluggable metadata sources (Calibre works today; others are stubs)
 Configuration       (src/config)        -- paths, Settings/config.json, constants
 ```
@@ -155,13 +173,13 @@ is in `docs/architecture/` - start with `Architecture.md` and
 
 - External metadata providers (Open Library, Google Books, ISBNdb) —
   interface-conformant stubs exist in `src/providers/` but raise
-  `NotImplementedError` (planned v1.4.0/v2.1.0). Calibre itself is
+  `NotImplementedError` (planned v1.5.0/v2.1.0). Calibre itself is
   wired up as a working provider (`src/providers/calibre/`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
-- Cover-fetching, Excel/HTML/PDF reports, GUI, duplicate *file*
-  detection (duplicate *books* by ISBN/title and duplicate *authors*
-  are both covered) — see `docs/architecture/Roadmap.md`.
+- Cover-fetching, GUI, duplicate *file* detection (duplicate *books*
+  by ISBN/title and duplicate *authors* are both covered), report
+  scheduling — see `docs/architecture/Roadmap.md`.
 
 ## Contributing
 

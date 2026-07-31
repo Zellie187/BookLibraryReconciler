@@ -1,10 +1,17 @@
 # Version Roadmap
 
 See `CHANGELOG.md` for the detailed, dated history. This is the
-forward-looking summary, following the numbering from the "Feature
-Specifications - Version 1.x Roadmap" document (this supersedes an
-earlier draft numbering that had metadata analysis/reporting before
-search - search is what actually shipped first).
+forward-looking summary. Version *numbers* here track actual ship
+order (so they're always increasing); version *content* mostly follows
+the "Feature Specifications - Version 1.x Roadmap" document, except
+where explicit build-order choices swapped two entries:
+
+- Search (spec's v1.1.0) shipped first, matching the spec already.
+- The Report Engine (spec's v1.5.0) was explicitly built before the
+  Open Library provider (spec's v1.4.0), so **this project's v1.4.0 is
+  the Report Engine and v1.5.0 is Open Library/covers** - the reverse
+  of the spec document's own numbering. Content-wise nothing was
+  dropped, just reordered.
 
 | Version | Features |
 |---|---|
@@ -12,8 +19,8 @@ search - search is what actually shipped first).
 | v1.1.0 | Search engine and library navigation |
 | v1.2.0 | Metadata analysis and health scoring |
 | v1.3.0 | Metadata repair engine |
-| v1.4.0 | Open Library provider and cover downloads |
-| v1.5.0 | Report engine (CSV, Excel, HTML, JSON, PDF) |
+| v1.4.0 | Report engine (CSV, Excel, HTML, JSON, PDF) - spec's v1.5.0, built first |
+| v1.5.0 | Open Library provider and cover downloads - spec's v1.4.0, built after |
 | v2.0.0 | PySide6 desktop application |
 | v2.1.0 | Additional providers (Google Books, Internet Archive, etc.) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -111,7 +118,7 @@ documented in `Database.md`) and a real false-positive fix (the
 Not done:
 
 - [ ] Repair sources comparison (Calibre vs Open Library vs Google
-      Books vs ISBNdb) - blocked on v1.4.0/v2.1.0 providers being real;
+      Books vs ISBNdb) - blocked on v1.5.0/v2.1.0 providers being real;
       comparing Calibre against itself has no value
 - [ ] Broken series order *repair* - `series_order.py` (v1.2.0) already
       *detects* duplicate/gap positions, but deciding which book should
@@ -119,7 +126,30 @@ Not done:
       project's rules say a human should make in Calibre itself, not
       something to guess at automatically
 
-## v1.4.0 - Open Library provider and cover downloads
+## v1.4.0 - Report engine (done)
+
+See `Reports.md` for the full write-up. Built before the Open Library
+provider (spec's original v1.4.0) - see the note at the top of this doc.
+
+- [x] Common `ReportWriter` interface; `CsvReport`/`JsonReport`/`HtmlReport`
+      real, `ExcelReport` (`openpyxl`) and `PdfReport` (`fpdf2`) real
+      with lazy imports and a friendly error if the optional dependency
+      is missing
+- [x] Report presets: Library Health (library-wide counts, not
+      per-book), Duplicate Report (isbn/title/author), Series Report,
+      Statistics (books per author/series/language/year, largest/
+      smallest books) - verified against the bundled 7,000-book sample
+      (1,468 authors, 2,365 series -> ~3,855-row statistics table,
+      sane file sizes across all five formats)
+- [x] CLI: `python run.py report --type <...> --format <...> [--output PATH]`
+
+Not done:
+
+- [ ] Scheduling (manual/automatic/on-demand) - needs a place to run on
+      a timer, which implies either the GUI or a separate scheduler
+      process
+
+## v1.5.0 - Open Library provider and cover downloads
 
 - [ ] Implement `OpenLibraryProvider.find_candidates()` for real
       (search by ISBN/title/author, response caching, rate limiting,
@@ -130,19 +160,6 @@ Not done:
       metadata-only if legally appropriate), resolution/duplicate/
       quality checks, image validation, automatic resize, JPG/PNG/WEBP
 
-## v1.5.0 - Report engine (CSV, Excel, HTML, JSON, PDF)
-
-- [x] Common `ReportWriter` interface; `CsvReport`/`JsonReport` real
-- [ ] `ExcelReport` (needs `openpyxl`, not yet a dependency)
-- [ ] `HtmlReport`
-- [ ] PDF export (needs a PDF library)
-- [ ] Report presets: Library Health, Duplicate Report, Series Report,
-      Statistics (books per author/series/language/year, largest/
-      smallest books)
-- [ ] Scheduling (manual/automatic/on-demand) - needs a place to run on
-      a timer, which implies either the GUI or a separate scheduler
-      process
-
 ## v2.0.0 - PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
@@ -151,7 +168,7 @@ collections), settings, notifications.
 
 ## v2.1.0 - Additional providers
 
-Google Books, Internet Archive, and others, once v1.4.0's
+Google Books, Internet Archive, and others, once v1.5.0's
 `OpenLibraryProvider` establishes the pattern for a real (non-stub)
 provider implementation.
 

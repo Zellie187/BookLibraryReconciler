@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This project is pre-1.0 (currently `v1.3.0`, see `docs/architecture/Roadmap.md`).
+This project is pre-1.0 (currently `v1.4.0`, see `docs/architecture/Roadmap.md`).
 Only the latest commit on `main` is supported with security fixes
 until a first stable release tags a supported-versions table here.
 
@@ -41,9 +41,17 @@ Given what this project does, the areas most worth scrutiny are:
   yet. When Open Library/Google Books/ISBNdb support lands, this
   section will be updated to cover network-facing concerns (SSRF,
   response parsing, API key handling via `src/config/providers.py`).
+- **HTML report generation** (`src/reports/html_report.py`): every
+  cell value (which ultimately comes from `metadata.db`, i.e. from
+  whatever wrote your library's metadata) is passed through
+  `html.escape()` before being embedded in the page - never
+  string-interpolated raw. A bypass there (a value that renders as
+  live HTML/script in a generated report) would be a valid finding.
 
 ## Dependencies
 
-Development dependencies are pinned to minimum versions in
-`requirements.txt`. The application itself has no runtime dependencies
-outside the Python standard library.
+Dependencies are pinned to minimum versions in `requirements.txt`. Most
+of the application (including CSV/JSON/HTML reports) is stdlib-only;
+`openpyxl` and `fpdf2` are used only for `report --format
+excel`/`pdf`, and are lazy-imported so the rest of the app works
+without them installed (see `docs/architecture/Reports.md`).

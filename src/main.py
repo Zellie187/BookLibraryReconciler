@@ -4,6 +4,7 @@ Book Library Reconciler
 
 import argparse
 import sys
+from pathlib import Path
 
 from analyzers.library_analyzer import LibraryAnalyzer
 from app.application import Application
@@ -11,16 +12,32 @@ from config.constants import LINE, VERSION
 from config.paths import OUTPUT_FOLDER
 from controllers.search_controller import SearchController
 from metadata.author_duplicate_finder import AuthorDuplicateFinder
+from metadata.duplicate_detector import DuplicateDetector
 from metadata.library_inspector import LibraryInspector
 from metadata.metadata_repair import MetadataRepair
 from metadata.metadata_score import MetadataScorer
+from metadata.series_order import find_series_order_issues
 from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
 from repair.file_organizer import FileOrganizer
 from repair.metadata_repair_applier import MetadataRepairApplier
 from repair.organize_applier import OrganizeApplier
 from reports.csv_report import CsvReport
+from reports.excel_report import ExcelReport
+from reports.html_report import HtmlReport
+from reports.json_report import JsonReport
+from reports.pdf_report import PdfReport
 from services.search_service import SORT_KEYS
+
+FORMAT_WRITERS = {
+    "csv": CsvReport,
+    "json": JsonReport,
+    "excel": ExcelReport,
+    "html": HtmlReport,
+    "pdf": PdfReport,
+}
+
+REPORT_TYPES = ("health", "duplicates", "series", "statistics")
 
 
 def print_header(app):
@@ -279,6 +296,43 @@ def run_repair(args, app):
         print(f"  canonical #{result.canonical_author_id}: {result.error}")
 
 
+def run_report(args, app):
+
+    writer = FORMAT_WRITERS[args.format]()
+
+    books = app.library_service.get_all_books()
+
+    output_path = args.output or (OUTPUT_FOLDER / f"{args.type}_report{writer.extension}")
+
+    try:
+
+        if args.type == "health":
+            result_path = writer.write_library_health_summary(books, output_path)
+
+        elif args.type == "duplicates":
+            isbn_groups = DuplicateDetector().find_isbn_duplicates(books)
+            title_groups = DuplicateDetector().find_title_duplicates(books)
+            author_groups = AuthorDuplicateFinder().find_duplicates(
+                app.library_service.get_all_author_records()
+            )
+            result_path = writer.write_duplicate_report(
+                isbn_groups, title_groups, output_path, author_groups=author_groups
+            )
+
+        elif args.type == "series":
+            issues = find_series_order_issues(books)
+            result_path = writer.write_series_report(issues, output_path)
+
+        else:
+            result_path = writer.write_statistics_report(books, output_path)
+
+    except ImportError as error:
+        print(f"Error: {error}")
+        return
+
+    print(f"{args.type.capitalize()} report ({args.format}) written to:\n{result_path}")
+
+
 def run_organize(args, app):
 
     books = app.library_service.get_all_books()
@@ -390,6 +444,20 @@ def build_parser():
         "--csv", action="store_true", help="Write the full per-book analysis to output/library_analysis.csv"
     )
     analyze_parser.set_defaults(func=run_analyze)
+
+    report_parser = subparsers.add_parser(
+        "report",
+        help="Generate a library-wide report (health/duplicates/series/statistics) in any format",
+    )
+    report_parser.add_argument("--type", choices=REPORT_TYPES, default="health")
+    report_parser.add_argument("--format", choices=sorted(FORMAT_WRITERS.keys()), default="csv")
+    report_parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file path (default: output/<type>_report.<ext>)",
+    )
+    report_parser.set_defaults(func=run_report)
 
     search_parser = subparsers.add_parser(
         "search", help="Search the library by any field, with AND-combined filters"

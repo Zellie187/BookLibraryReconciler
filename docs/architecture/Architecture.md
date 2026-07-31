@@ -18,7 +18,7 @@ the Service layer's data instead of sitting inside it:
 ```
 Metadata Engine   src/metadata/    - completeness scoring, validation, repair suggestions
 Repair Engine     src/repair/      - file reorganize plan + apply + backup
-Reports           src/reports/     - CSV/JSON/(Excel/HTML) report writers
+Reports           src/reports/     - CSV/JSON/HTML/Excel/PDF report writers (see Reports.md)
 Providers         src/providers/   - pluggable external metadata sources
 ```
 
