@@ -118,8 +118,10 @@ documented in `Database.md`) and a real false-positive fix (the
 Not done:
 
 - [ ] Repair sources comparison (Calibre vs Open Library vs Google
-      Books vs ISBNdb) - blocked on v1.5.0/v2.1.0 providers being real;
-      comparing Calibre against itself has no value
+      Books vs ISBNdb) - the *comparison* is real as of v1.5.0
+      (`python run.py lookup`, Calibre vs Open Library specifically),
+      but there's still no write path from a chosen candidate back
+      into `metadata.db`, and Google Books/ISBNdb remain stubs
 - [ ] Broken series order *repair* - `series_order.py` (v1.2.0) already
       *detects* duplicate/gap positions, but deciding which book should
       move to which position is exactly the kind of judgment call this
@@ -149,16 +151,45 @@ Not done:
       a timer, which implies either the GUI or a separate scheduler
       process
 
-## v1.5.0 - Open Library provider and cover downloads
+## v1.5.0 - Open Library provider and cover downloads (provider done, covers not)
 
-- [ ] Implement `OpenLibraryProvider.find_candidates()` for real
-      (search by ISBN/title/author, response caching, rate limiting,
-      offline mode, error handling for network failure/invalid
-      ISBN/not found/timeout)
+See `Providers.md` for the full write-up, including a real data-quality
+surprise found while testing against the live API (bogus ISBNs like
+`"0000000000000"` returned real, unrelated books rather than "not found").
+
+- [x] Implement `OpenLibraryProvider.find_candidates()` for real: ISBN
+      lookup (bibkeys API, exact record) with title/author search
+      fallback (`search.json`, several loosely-matched candidates)
+- [x] Response caching (`response_cache.py`, 1-week TTL, file-based)
+- [x] Offline mode (`--offline` on the CLI - cache-only, no network)
+- [x] Rate limiting (1s minimum interval between real requests; cache
+      hits bypass it)
+- [x] Error handling: `ProviderUnavailableError` for network
+      failure/timeout/malformed response, distinct from a confirmed
+      empty `[]` result; the "not found" case for a bogus ISBN can't be
+      detected any more precisely than "the bibkey isn't in the
+      response" - see `Providers.md` for why
+- [x] CLI: `python run.py lookup <book_id> [--offline]` - read-only
+      side-by-side comparison (Calibre's current metadata vs. Open
+      Library candidates), matching the spec's "Metadata Comparison"
+      concept. No `--apply` - deciding which fields to trust and
+      overwrite is a real policy question, deliberately not answered
+      yet (see "Not done" below)
+
+Not done - **Cover Download Engine was explicitly scoped out of this
+pass**, it's a separate, sizable feature (a new Pillow dependency,
+plus image validation/quality-scoring/duplicate-detection/resize logic
+that deserves its own pass rather than being rushed as an addendum):
+
 - [ ] Cover Download Engine: provider list (Open Library, Google
       Books, Internet Archive, user folder; Amazon only as
       metadata-only if legally appropriate), resolution/duplicate/
       quality checks, image validation, automatic resize, JPG/PNG/WEBP
+- [ ] Repair sources comparison *applying* a chosen candidate's fields
+      back to `metadata.db` - `lookup` now makes the comparison real,
+      but there's still no write path; this needs a real UI/UX
+      decision (per-field approve? whole-candidate approve?) that's
+      more naturally a GUI (v2.0.0) concern than a CLI flag
 
 ## v2.0.0 - PySide6 desktop application
 

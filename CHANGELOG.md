@@ -4,6 +4,49 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.5.0 - Open Library provider
+
+The spec's Open Library provider scope, built after the Report Engine
+(v1.4.0) by explicit choice - see the note at the top of `Roadmap.md`.
+**Cover Download Engine is explicitly not part of this release** - a
+separate, sizable feature (new Pillow dependency, image validation/
+dedup/resize) deliberately left for its own pass.
+
+### Added
+- `providers/response_cache.py` - `ResponseCache`, a file-based JSON
+  cache keyed by URL (`sha256` hash), with a TTL. Provider-agnostic,
+  ready for reuse by Google Books/ISBNdb when those stop being stubs.
+- Real `OpenLibraryProvider.find_candidates()`: ISBN lookup (Open
+  Library's `bibkeys` API, one exact record) with a title/author
+  search fallback (`search.json`, up to 5 candidates) when there's no
+  ISBN. stdlib `urllib` only - no new HTTP dependency.
+- `offline` mode (cache-only, never touches the network), a 1-second
+  minimum interval between real requests (bypassed on cache hits), and
+  a new `ProviderUnavailableError` distinguishing "couldn't reach the
+  provider" (network/timeout/malformed response) from a confirmed
+  empty result.
+- The HTTP transport is dependency-injected (`fetcher` constructor
+  argument) specifically so the automated test suite never makes a
+  real network call - `tests/test_openlibrary_provider.py` uses a fake
+  fetcher throughout.
+- CLI: `python run.py lookup <book_id> [--offline]` - read-only,
+  side-by-side comparison of Calibre's current metadata against every
+  Open Library candidate found. No write path yet (deciding which
+  fields to trust and overwrite is a real policy question, not
+  answered by this release).
+- `config/paths.py:CACHE_FOLDER`; new provider config constants
+  (timeout, cache TTL, rate-limit interval, user agent) in
+  `config/providers.py`.
+- `docs/architecture/Providers.md` rewritten with the real
+  implementation details, including a genuine data-quality surprise
+  found while testing against the live API: bogus ISBNs like
+  `"0000000000000"` returned real, unrelated books rather than a clean
+  "not found" - Open Library's own data, not a bug in this project,
+  and exactly the kind of mismatch `lookup`'s comparison view is meant
+  to surface to a human.
+
+---
+
 ## Version 1.4.0 - Report engine
 
 Note: the spec's "Version 1.x Roadmap" document assigns this content

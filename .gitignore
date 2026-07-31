@@ -9,6 +9,7 @@ __pycache__/
 output/
 logs/
 covers/
+cache/
 *.bak
 *.*.bak
 

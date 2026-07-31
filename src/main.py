@@ -17,6 +17,8 @@ from metadata.library_inspector import LibraryInspector
 from metadata.metadata_repair import MetadataRepair
 from metadata.metadata_score import MetadataScorer
 from metadata.series_order import find_series_order_issues
+from providers.base.provider import ProviderUnavailableError
+from providers.openlibrary.openlibrary_provider import OpenLibraryProvider
 from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
 from repair.file_organizer import FileOrganizer
@@ -333,6 +335,52 @@ def run_report(args, app):
     print(f"{args.type.capitalize()} report ({args.format}) written to:\n{result_path}")
 
 
+def run_lookup(args, app):
+    """
+    Read-only metadata comparison: what Calibre already has next to
+    what Open Library has for the same book. Never writes anything -
+    deciding whether/how to apply a provider's data is future work
+    (see Roadmap.md), and would need its own explicit approve/apply
+    step either way.
+    """
+
+    books = app.library_service.get_all_books()
+    book = next((candidate for candidate in books if candidate.id == args.book_id), None)
+
+    if book is None:
+        print(f"No book with id {args.book_id}")
+        return
+
+    print(f"Calibre metadata for #{book.id}:\n")
+    print(f"  Title       : {book.title}")
+    print(f"  Author      : {book.author_names}")
+    print(f"  ISBN        : {book.isbn or '-'}")
+    print(f"  Publisher   : {book.publisher or '-'}")
+    print(f"  Description : {(book.comments[:100] + '...') if book.comments else '-'}")
+
+    provider = OpenLibraryProvider(offline=args.offline)
+
+    try:
+        candidates = provider.find_candidates(book)
+    except ProviderUnavailableError as error:
+        print(f"\nOpen Library unavailable: {error}")
+        return
+
+    if not candidates:
+        print("\nNo Open Library matches found.")
+        return
+
+    print(f"\nOpen Library candidates ({len(candidates)}):")
+
+    for index, candidate in enumerate(candidates, start=1):
+        print(f"\n  [{index}] {candidate.title!r} by {', '.join(candidate.authors) or 'Unknown'}")
+        print(f"      ISBN: {candidate.isbn or '-'}  Publisher: {candidate.publisher or '-'}")
+        if candidate.description:
+            print(f"      Description: {candidate.description[:100]}")
+        if candidate.cover_url:
+            print(f"      Cover: {candidate.cover_url}")
+
+
 def run_organize(args, app):
 
     books = app.library_service.get_all_books()
@@ -458,6 +506,16 @@ def build_parser():
         help="Output file path (default: output/<type>_report.<ext>)",
     )
     report_parser.set_defaults(func=run_report)
+
+    lookup_parser = subparsers.add_parser(
+        "lookup",
+        help="Read-only: compare a book's Calibre metadata against Open Library (no writes)",
+    )
+    lookup_parser.add_argument("book_id", type=int, help="Calibre book id (see `preview`/`search`)")
+    lookup_parser.add_argument(
+        "--offline", action="store_true", help="Only consult the local cache, never the network"
+    )
+    lookup_parser.set_defaults(func=run_lookup)
 
     search_parser = subparsers.add_parser(
         "search", help="Search the library by any field, with AND-combined filters"

@@ -1,6 +1,6 @@
 # Project Specification
 
-- Version: v1.4.0 (see `Roadmap.md` for the full version sequence)
+- Version: v1.5.0 (see `Roadmap.md` for the full version sequence)
 - Language: Python 3.14+
 - License: MIT
 

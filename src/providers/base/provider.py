@@ -26,6 +26,15 @@ class MetadataCandidate:
     cover_url: str = ""
 
 
+class ProviderUnavailableError(Exception):
+    """
+    Raised when a provider couldn't be reached or its response
+    couldn't be understood (network failure, timeout, malformed
+    response) - distinct from a confirmed "not found", which returns
+    an empty list instead of raising.
+    """
+
+
 class MetadataProvider(ABC):
 
     name = "base"
@@ -35,6 +44,8 @@ class MetadataProvider(ABC):
         """
         Return a list of MetadataCandidate for the given Book, best
         match first. Return an empty list when nothing is found.
+        Raise ProviderUnavailableError when the provider itself
+        couldn't be reached or its response was unusable.
         """
 
         raise NotImplementedError

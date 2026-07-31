@@ -24,6 +24,7 @@ python run.py organize --limit 10 --csv
 python run.py organize --apply
 python run.py search "author=King" "isbn:missing" --sort title --csv
 python run.py report --type statistics --format excel
+python run.py lookup 1 --offline
 ```
 
 By default this reads the bundled sample library in `data/` (7,029
@@ -43,7 +44,10 @@ matching Calibre's schema (only the tables/columns this project
 touches) via `tmp_path` fixtures - no test depends on a real Calibre
 library or the bundled sample data. `tests/test_organize_applier.py`
 and `tests/test_backup.py` exercise real filesystem operations against
-`tmp_path`, never the actual `data/` folder.
+`tmp_path`, never the actual `data/` folder. `tests/test_openlibrary_provider.py`
+injects a fake HTTP fetcher - **the test suite never makes a real
+network call**; the live API was only exercised manually (see
+`Providers.md`).
 
 ## Linting, formatting, type checking
 
@@ -84,7 +88,9 @@ src/
     repair/         FileOrganizer, OrganizeApplier, MetadataRepairApplier, AuthorMerger, backup
     reports/        ReportWriter + CsvReport/JsonReport/HtmlReport/ExcelReport/PdfReport
                     (see Reports.md)
-    providers/      MetadataProvider + calibre/openlibrary/googlebooks/isbndb
+    providers/      MetadataProvider, ProviderUnavailableError, ResponseCache
+                    (see Providers.md); calibre/ and openlibrary/ are real,
+                    googlebooks/ and isbndb/ are stubs
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)
     utils/          logger.py (not yet wired into the CLI)
 tests/              pytest suite + tests/conftest.py fixtures
@@ -101,7 +107,7 @@ resources/          future GUI assets (icons/images/themes/fonts)
 | Add a searchable/sortable field | `services/search_service.py`'s `FIELD_EXTRACTORS`/`SORT_KEYS` - see `Search.md` |
 | Add a completeness/validity check | `metadata/metadata_score.py` or `metadata_validator.py` - see `Metadata-Engine.md` |
 | Add a library-wide check (duplicates, series order, ...) | `metadata/` (own module) + wire into `LibraryInspector` and `run_analyze()` |
-| Add an external metadata source | `providers/` - see `Providers.md` |
+| Add an external metadata source | `providers/` - see `Providers.md`; inject the HTTP transport as a constructor arg (like `OpenLibraryProvider`'s `fetcher`) so tests never hit the real network |
 | Add an output format | `reports/` - subclass `ReportWriter`, implement `write_table()` - see `Reports.md` |
 | Add a report preset | `reports/base_report.py` - add a `write_*(...)` method producing `(headers, rows)`, then wire it into `run_report()`'s `--type` choices |
 | Add a filesystem operation | `repair/` - must be preview-first with an explicit apply step and a backup, like `organize_applier.py` |

@@ -22,6 +22,7 @@ OUTPUT_FOLDER = ROOT / "output"
 REPORT_FOLDER = ROOT / "reports"
 LOG_FOLDER = ROOT / "logs"
 COVER_FOLDER = ROOT / "covers"
+CACHE_FOLDER = ROOT / "cache"
 
 # ----------------------------------------------------
 # Files
@@ -38,5 +39,6 @@ for folder in (
     REPORT_FOLDER,
     LOG_FOLDER,
     COVER_FOLDER,
+    CACHE_FOLDER,
 ):
     folder.mkdir(exist_ok=True)

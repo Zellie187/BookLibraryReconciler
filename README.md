@@ -7,7 +7,7 @@ metadata, and can safely reorganize messy filenames/folders into a clean
 
 Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
-v1.4.0 report engine shipped.
+v1.4.0 report engine + v1.5.0 Open Library provider shipped.
 
 ## Requirements
 
@@ -15,6 +15,9 @@ v1.4.0 report engine shipped.
 - A Calibre library (a `metadata.db` file). A small sample library
   (`data/metadata.db`, 7,000+ real-world-messy entries) is bundled for
   trying the tool out before pointing it at your own books.
+- Internet access, only for `python run.py lookup` (queries Open
+  Library) — every other command works fully offline. `lookup --offline`
+  restricts it to the local response cache too.
 
 ## Setup
 
@@ -54,12 +57,31 @@ python run.py organize --limit 10  # preview a reorganize, changes nothing
 python run.py organize --apply     # back up metadata.db, then actually move files
 python run.py search "author=King" "isbn:missing" --sort title --limit 20
 python run.py report --type statistics --format excel
+python run.py lookup 1              # compare a book's Calibre metadata against Open Library (read-only)
 ```
 
 Add `--csv` to `health`, `analyze`, `repair`, `organize`, or `search`
 to write the full results to `output/health_report.csv` /
 `output/library_analysis.csv` / `output/repair_suggestions.csv` /
 `output/organize_plan.csv` / `output/search_results.csv`.
+
+### How `lookup` works
+
+Read-only: prints Calibre's current metadata for a book id next to
+every candidate `OpenLibraryProvider` finds for it (ISBN lookup if the
+book has one, otherwise a title/author search). Nothing is written -
+there's no `--apply` yet, since deciding which fields to trust and
+overwrite is a real policy question this project hasn't answered.
+Responses are cached (`cache/openlibrary/`, 1-week TTL); `--offline`
+only consults that cache and never touches the network. See
+`docs/architecture/Providers.md` for a real data-quality surprise found
+while building this (Open Library returning unrelated books for bogus
+ISBNs, rather than a clean "not found").
+
+```bash
+python run.py lookup 1
+python run.py lookup 1 --offline
+```
 
 ### How `report` works
 
@@ -161,7 +183,7 @@ Domain Models       (src/models)
 Metadata Engine     (src/metadata)      -- completeness/health scoring, validation, repair suggestions
 Repair Engine       (src/repair)        -- reorganize plan + apply + backup
 Reports             (src/reports)       -- CSV/JSON/HTML/Excel/PDF behind a common interface
-Providers           (src/providers)     -- pluggable metadata sources (Calibre works today; others are stubs)
+Providers           (src/providers)     -- pluggable metadata sources (Calibre + Open Library work; Google Books/ISBNdb are stubs)
 Configuration       (src/config)        -- paths, Settings/config.json, constants
 ```
 
@@ -171,15 +193,20 @@ is in `docs/architecture/` - start with `Architecture.md` and
 
 ## Not implemented yet
 
-- External metadata providers (Open Library, Google Books, ISBNdb) —
-  interface-conformant stubs exist in `src/providers/` but raise
-  `NotImplementedError` (planned v1.5.0/v2.1.0). Calibre itself is
-  wired up as a working provider (`src/providers/calibre/`).
+- Google Books and ISBNdb providers — interface-conformant stubs exist
+  in `src/providers/` but raise `NotImplementedError` (planned
+  v2.1.0). Calibre and Open Library are both wired up as working
+  providers (`src/providers/calibre/`, `src/providers/openlibrary/`).
+- Applying a provider's metadata back into `metadata.db` — `lookup`
+  shows the comparison; there's no write path yet (a real policy
+  question, not just an implementation gap — see `docs/architecture/Roadmap.md`).
+- Cover Download Engine (needs Pillow + image validation/dedup/resize
+  — deliberately scoped out of the Open Library work, see Roadmap.md).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
-- Cover-fetching, GUI, duplicate *file* detection (duplicate *books*
-  by ISBN/title and duplicate *authors* are both covered), report
-  scheduling — see `docs/architecture/Roadmap.md`.
+- GUI, duplicate *file* detection (duplicate *books* by ISBN/title and
+  duplicate *authors* are both covered), report scheduling — see
+  `docs/architecture/Roadmap.md`.
 
 ## Contributing
 
