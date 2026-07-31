@@ -58,24 +58,30 @@ Not done (deferred to the GUI, v2.0.0 - no CLI "session" to attach to):
 - [ ] Search history
 - [ ] Smart collections
 
-## v1.2.0 - Metadata analysis and health scoring (mostly done, shipped early)
+## v1.2.0 - Metadata analysis and health scoring (done)
 
-Built during the v1.0.0-alpha architecture pass, ahead of this
-version's turn in the sequence - see `Metadata-Engine.md`.
+See `Metadata-Engine.md` for the full write-up.
 
 - [x] Completeness scoring (`MetadataScorer`/`metadata_score.py`)
 - [x] Validation heuristics (`MetadataValidator`): title matches
       author name, title contains a "by \<author\>" clause, empty
-      title, series_index of 0
+      title, series_index of 0, invalid ISBN checksum
 - [x] Facade tying scoring + validation + repair suggestions together
       (`MetadataEngine`)
-- [ ] Duplicate detection (title+author fuzzy matching - `SearchService`'s
-      `fuzzy` operator is reusable here)
-- [ ] Invalid ISBN checksum validation
-- [ ] Broken series order detection (gaps/duplicates in `series_index`
-      within a series)
-- [ ] Wire `MetadataEngine.books_needing_attention()` into a CLI command
-      (today `health` only uses the scorer directly)
+- [x] Invalid ISBN checksum validation (`isbn_validator.py` - ISBN-10/13)
+- [x] Duplicate detection (`duplicate_detector.py`): exact ISBN match,
+      plus fuzzy title matching blocked by author, with exclusions for
+      author-name-echo titles and numbered-volume titles (both found
+      by running against the bundled sample and checking by hand)
+- [x] Broken series order detection (`series_order.py`): duplicate
+      positions and gaps in whole-number sequences
+- [x] `LibraryInspector` ties all of the above into one whole-library
+      report, wired into `python run.py analyze`
+
+Not done:
+
+- [ ] Duplicate *files* / duplicate *authors* detection (only duplicate
+      *books* - by ISBN or title - are covered so far)
 
 ## v1.3.0 - Metadata repair engine
 

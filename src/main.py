@@ -10,6 +10,7 @@ from app.application import Application
 from config.constants import LINE, VERSION
 from config.paths import OUTPUT_FOLDER
 from controllers.search_controller import SearchController
+from metadata.library_inspector import LibraryInspector
 from metadata.metadata_score import MetadataScorer
 from repair.backup import backup_database
 from repair.file_organizer import FileOrganizer
@@ -118,6 +119,50 @@ def run_health(args, app):
             reports, OUTPUT_FOLDER / "health_report.csv"
         )
         print(f"\nFull report written to:\n{output_path}")
+
+
+def run_analyze(args, app):
+
+    books = app.library_service.get_all_books()
+
+    inspection = LibraryInspector().inspect(books)
+    needing_attention = inspection.books_needing_attention
+
+    print(f"Average Metadata Health Score : {inspection.average_score}%")
+    print(f"Books needing attention       : {len(needing_attention):,} / {len(books):,}")
+    print(f"ISBN duplicate groups         : {len(inspection.isbn_duplicate_groups):,}")
+    print(f"Title duplicate groups        : {len(inspection.title_duplicate_groups):,}")
+    print(f"Series order issues           : {len(inspection.series_order_issues):,}")
+
+    if inspection.isbn_duplicate_groups:
+        print("\nISBN duplicates:\n")
+        for group in inspection.isbn_duplicate_groups[: args.limit]:
+            print(f"  {group.reason}: books {group.book_ids}")
+
+    if inspection.title_duplicate_groups:
+        print("\nTitle duplicates:\n")
+        for group in inspection.title_duplicate_groups[: args.limit]:
+            print(f"  {group.reason}: books {group.book_ids}")
+
+    if inspection.series_order_issues:
+        print("\nSeries order issues:\n")
+        for issue in inspection.series_order_issues[: args.limit]:
+            print(f"  {issue.series_name!r} {issue.issue_type}: {issue.detail}")
+
+    worst = sorted(needing_attention, key=lambda a: a.score)[: args.limit]
+
+    print(f"\n{args.limit} books most in need of attention:\n")
+
+    for analysis in worst:
+        issues = "; ".join(analysis.issues) if analysis.issues else "none"
+        print(f"[{analysis.score:>3}%] #{analysis.book_id:<6} {analysis.title!r:<45} {issues}")
+
+    if args.csv:
+        report_writer = CsvReport()
+        output_path = report_writer.write_library_analysis(
+            inspection.book_analyses, OUTPUT_FOLDER / "library_analysis.csv"
+        )
+        print(f"\nFull per-book analysis written to:\n{output_path}")
 
 
 def run_search(args, app):
@@ -244,6 +289,16 @@ def build_parser():
         help="Actually move files and update metadata.db (backs it up first)",
     )
     organize_parser.set_defaults(func=run_organize)
+
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help="Full library inspection: health score, validation issues, duplicates, series order",
+    )
+    analyze_parser.add_argument("--limit", type=int, default=10, help="How many findings to print per section")
+    analyze_parser.add_argument(
+        "--csv", action="store_true", help="Write the full per-book analysis to output/library_analysis.csv"
+    )
+    analyze_parser.set_defaults(func=run_analyze)
 
     search_parser = subparsers.add_parser(
         "search", help="Search the library by any field, with AND-combined filters"

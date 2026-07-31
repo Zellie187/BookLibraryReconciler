@@ -18,7 +18,7 @@ def test_analyze_book_combines_score_and_validation():
 
 def test_complete_clean_book_does_not_need_attention():
 
-    book = Book(id=1, title="Doctor Sleep", isbn="123", comments="A book.", has_cover=True)
+    book = Book(id=1, title="Doctor Sleep", isbn="9780306406157", comments="A book.", has_cover=True)
     book.add_author(Author(name="Stephen King"))
 
     analysis = MetadataEngine().analyze_book(book)
@@ -30,7 +30,7 @@ def test_complete_clean_book_does_not_need_attention():
 
 def test_books_needing_attention_filters_the_library():
 
-    clean = Book(id=1, title="Doctor Sleep", isbn="123", comments="A book.", has_cover=True)
+    clean = Book(id=1, title="Doctor Sleep", isbn="9780306406157", comments="A book.", has_cover=True)
     clean.add_author(Author(name="Stephen King"))
 
     messy = Book(id=2, title="The Maze of Bones by Rick Riordan")

@@ -10,6 +10,8 @@ show them to a human before changing anything.
 import re
 from dataclasses import dataclass, field
 
+from metadata.isbn_validator import is_valid_isbn
+
 BY_CLAUSE_PATTERN = re.compile(r"\s+by\s+[A-Z][\w.'-]*(?:\s+[A-Z][\w.'-]*)*$")
 
 
@@ -76,6 +78,14 @@ class MetadataValidator:
                 ValidationIssue(
                     "series_index_zero",
                     f"In series {book.series.name!r} but series_index is 0",
+                )
+            )
+
+        if book.isbn and not is_valid_isbn(book.isbn):
+            report.issues.append(
+                ValidationIssue(
+                    "invalid_isbn",
+                    f"ISBN {book.isbn!r} fails checksum validation",
                 )
             )
 

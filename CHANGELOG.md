@@ -4,6 +4,34 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.2.0 - Metadata analysis and health scoring
+
+### Added
+- `metadata/isbn_validator.py` - ISBN-10/ISBN-13 checksum validation
+  (stdlib only). Wired into `MetadataValidator` as a new `invalid_isbn`
+  check.
+- `metadata/duplicate_detector.py` - `DuplicateDetector` finds likely
+  duplicate books two ways: exact ISBN match, and fuzzy title matching
+  (blocked by primary author, for speed on large libraries). Excludes
+  author-name-echo titles and numbered-volume titles, both tuned by
+  running against the bundled 7,000-book sample and checking the
+  output by hand (265 -> 46 groups after the numbered-volume fix, with
+  the remainder being genuine same-title duplicates on inspection).
+- `metadata/series_order.py` - `find_series_order_issues()` flags
+  duplicate series positions and gaps in whole-number sequences,
+  correctly excluding the `series_index == 0` "unset" sentinel and
+  treating fractional positions (between-volumes novellas) as valid.
+- `metadata/library_inspector.py` - `LibraryInspector` ties
+  `MetadataEngine` + `DuplicateDetector` + `series_order` together into
+  one `LibraryInspection` per library.
+- `ReportWriter.write_library_analysis()` for `--csv` on the new command.
+- CLI: `python run.py analyze [--limit N] [--csv]`.
+- `docs/architecture/Metadata-Engine.md` updated with all of the above,
+  including the exact false-positive patterns found and how they were
+  fixed; `Roadmap.md` marks v1.2.0 done.
+
+---
+
 ## Version 1.1.0 - Search engine and library navigation
 
 ### Added

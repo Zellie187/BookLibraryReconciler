@@ -14,6 +14,7 @@ library - `requirements.txt` is dev-only (`pytest`, `ruff`, `black`, `mypy`).
 ```bash
 python run.py preview --limit 10
 python run.py health --limit 10 --csv
+python run.py analyze --limit 10 --csv
 python run.py organize --limit 10 --csv
 python run.py organize --apply
 python run.py search "author=King" "isbn:missing" --sort title --csv
@@ -70,7 +71,8 @@ src/
     repositories/   one class per Calibre table/relationship (see Gateways.md)
     services/       LibraryService, SearchService
     analyzers/      LibraryAnalyzer (read-only stats)
-    metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine
+    metadata/       MetadataScorer, MetadataValidator, MetadataRepair, MetadataEngine,
+                    isbn_validator, DuplicateDetector, series_order, LibraryInspector
     repair/         FileOrganizer, OrganizeApplier, backup
     reports/        ReportWriter + CsvReport/JsonReport/(ExcelReport/HtmlReport stubs)
     providers/      MetadataProvider + calibre/openlibrary/googlebooks/isbndb
@@ -89,6 +91,7 @@ resources/          future GUI assets (icons/images/themes/fonts)
 | Read a new Calibre table/field | `repositories/`, `builders/book_builder.py` - see `Gateways.md` |
 | Add a searchable/sortable field | `services/search_service.py`'s `FIELD_EXTRACTORS`/`SORT_KEYS` - see `Search.md` |
 | Add a completeness/validity check | `metadata/metadata_score.py` or `metadata_validator.py` - see `Metadata-Engine.md` |
+| Add a library-wide check (duplicates, series order, ...) | `metadata/` (own module) + wire into `LibraryInspector` and `run_analyze()` |
 | Add an external metadata source | `providers/` - see `Providers.md` |
 | Add an output format | `reports/` - subclass `ReportWriter`, implement `write_table()` |
 | Add a filesystem operation | `repair/` - must be preview-first with an explicit apply step and a backup, like `organize_applier.py` |

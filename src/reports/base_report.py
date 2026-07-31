@@ -65,6 +65,29 @@ class ReportWriter(ABC):
 
     # ---------------------------------------------------------
 
+    def write_library_analysis(self, book_analyses, output_path):
+
+        headers = ["book_id", "title", "score", "failed_checks", "issues", "repair_suggestions"]
+
+        rows = [
+            [
+                analysis.book_id,
+                analysis.title,
+                analysis.score,
+                ", ".join(analysis.failed_checks),
+                "; ".join(analysis.issues),
+                "; ".join(
+                    f"{s.field}: {s.suggested_value or '(review manually)'}"
+                    for s in analysis.repair_suggestions
+                ),
+            ]
+            for analysis in book_analyses
+        ]
+
+        return self.write_table(headers, rows, output_path)
+
+    # ---------------------------------------------------------
+
     def write_search_results(self, books, output_path, scorer=None):
 
         scorer = scorer or MetadataScorer()

@@ -5,7 +5,8 @@ It points at a **Calibre** library, tells you what's wrong with your
 metadata, and can safely reorganize messy filenames/folders into a clean
 `Author/Title` layout without breaking Calibre's own database.
 
-Status: v1.0.0-alpha foundation + v1.1.0 search engine shipped.
+Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
+metadata analysis/health scoring shipped.
 
 ## Requirements
 
@@ -45,14 +46,27 @@ Always run through `run.py`:
 ```bash
 python run.py preview --limit 10   # show N books + basic library stats (default command)
 python run.py health --limit 10    # metadata completeness score per book
+python run.py analyze --limit 10   # full inspection: score + validation + duplicates + series order
 python run.py organize --limit 10  # preview a reorganize, changes nothing
 python run.py organize --apply     # back up metadata.db, then actually move files
 python run.py search "author=King" "isbn:missing" --sort title --limit 20
 ```
 
-Add `--csv` to `health`, `organize`, or `search` to write the full
-results to `output/health_report.csv` / `output/organize_plan.csv` /
+Add `--csv` to `health`, `analyze`, `organize`, or `search` to write
+the full results to `output/health_report.csv` /
+`output/library_analysis.csv` / `output/organize_plan.csv` /
 `output/search_results.csv`.
+
+### How `analyze` works
+
+Runs the whole Metadata Engine against the library in one pass:
+per-book completeness score and validation issues (wrong-looking
+titles, invalid ISBN checksums, series position of 0), plus two
+library-wide checks - likely-duplicate books (exact ISBN match, or a
+fuzzy title match blocked by author) and series order problems
+(duplicate or missing positions). See `docs/architecture/Metadata-Engine.md`
+for exactly how the duplicate/false-positive heuristics were tuned
+against the bundled sample library.
 
 ### How `search` works
 
@@ -122,7 +136,8 @@ is in `docs/architecture/` - start with `Architecture.md` and
   wired up as a working provider (`src/providers/calibre/`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
-- Duplicate detection, cover-fetching, Excel/HTML reports, GUI — see
+- Cover-fetching, Excel/HTML/PDF reports, GUI, duplicate *file*/*author*
+  detection (duplicate *books* by ISBN or title are covered) — see
   `docs/architecture/Roadmap.md`.
 
 ## Contributing

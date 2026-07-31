@@ -52,6 +52,24 @@ def test_flags_series_index_zero():
     assert any(issue.code == "series_index_zero" for issue in report.issues)
 
 
+def test_flags_invalid_isbn():
+
+    book = Book(id=6, title="Something", isbn="1234567890")
+
+    report = MetadataValidator().validate_book(book)
+
+    assert any(issue.code == "invalid_isbn" for issue in report.issues)
+
+
+def test_valid_isbn_does_not_flag():
+
+    book = Book(id=6, title="Something", isbn="978-0-306-40615-7")
+
+    report = MetadataValidator().validate_book(book)
+
+    assert not any(issue.code == "invalid_isbn" for issue in report.issues)
+
+
 def test_books_with_issues_filters_clean_books():
 
     clean = Book(id=1, title="Doctor Sleep")
