@@ -18,6 +18,7 @@ from metadata.metadata_repair import MetadataRepair
 from metadata.metadata_score import MetadataScorer
 from metadata.series_order import find_series_order_issues
 from providers.base.provider import ProviderUnavailableError
+from providers.googlebooks.googlebooks_provider import GoogleBooksProvider
 from providers.openlibrary.openlibrary_provider import OpenLibraryProvider
 from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
@@ -42,6 +43,11 @@ FORMAT_WRITERS = {
 }
 
 REPORT_TYPES = ("health", "duplicates", "series", "statistics")
+
+PROVIDERS = {
+    "openlibrary": ("Open Library", OpenLibraryProvider),
+    "googlebooks": ("Google Books", GoogleBooksProvider),
+}
 
 
 def print_header(app):
@@ -340,10 +346,10 @@ def run_report(args, app):
 def run_lookup(args, app):
     """
     Read-only metadata comparison: what Calibre already has next to
-    what Open Library has for the same book. Never writes anything -
-    deciding whether/how to apply a provider's data is future work
-    (see Roadmap.md), and would need its own explicit approve/apply
-    step either way.
+    what an external provider has for the same book. Never writes
+    anything - deciding whether/how to apply a provider's data is
+    future work (see Roadmap.md), and would need its own explicit
+    approve/apply step either way.
     """
 
     books = app.library_service.get_all_books()
@@ -360,19 +366,20 @@ def run_lookup(args, app):
     print(f"  Publisher   : {book.publisher or '-'}")
     print(f"  Description : {(book.comments[:100] + '...') if book.comments else '-'}")
 
-    provider = OpenLibraryProvider(offline=args.offline)
+    provider_label, provider_class = PROVIDERS[args.provider]
+    provider = provider_class(offline=args.offline)
 
     try:
         candidates = provider.find_candidates(book)
     except ProviderUnavailableError as error:
-        print(f"\nOpen Library unavailable: {error}")
+        print(f"\n{provider_label} unavailable: {error}")
         return
 
     if not candidates:
-        print("\nNo Open Library matches found.")
+        print(f"\nNo {provider_label} matches found.")
         return
 
-    print(f"\nOpen Library candidates ({len(candidates)}):")
+    print(f"\n{provider_label} candidates ({len(candidates)}):")
 
     for index, candidate in enumerate(candidates, start=1):
         print(f"\n  [{index}] {candidate.title!r} by {', '.join(candidate.authors) or 'Unknown'}")
@@ -397,12 +404,13 @@ def run_covers(args, app):
         print(f"No book with id {args.book_id}")
         return
 
-    provider = OpenLibraryProvider(offline=args.offline)
+    provider_label, provider_class = PROVIDERS[args.provider]
+    provider = provider_class(offline=args.offline)
 
     try:
         provider_candidates = provider.find_candidates(book)
     except ProviderUnavailableError as error:
-        print(f"Open Library unavailable: {error}")
+        print(f"{provider_label} unavailable: {error}")
         provider_candidates = []
 
     finder = CoverFinder(library_root=app.library_root, user_folder=args.user_folder)
@@ -604,11 +612,17 @@ def build_parser():
 
     lookup_parser = subparsers.add_parser(
         "lookup",
-        help="Read-only: compare a book's Calibre metadata against Open Library (no writes)",
+        help="Read-only: compare a book's Calibre metadata against an external provider (no writes)",
     )
     lookup_parser.add_argument("book_id", type=int, help="Calibre book id (see `preview`/`search`)")
     lookup_parser.add_argument(
         "--offline", action="store_true", help="Only consult the local cache, never the network"
+    )
+    lookup_parser.add_argument(
+        "--provider",
+        choices=sorted(PROVIDERS.keys()),
+        default="openlibrary",
+        help="External metadata source to compare against (default: openlibrary)",
     )
     lookup_parser.set_defaults(func=run_lookup)
 
@@ -619,6 +633,12 @@ def build_parser():
     covers_parser.add_argument("book_id", type=int, help="Calibre book id (see `preview`/`search`)")
     covers_parser.add_argument(
         "--offline", action="store_true", help="Only consult the local cache, never the network"
+    )
+    covers_parser.add_argument(
+        "--provider",
+        choices=sorted(PROVIDERS.keys()),
+        default="openlibrary",
+        help="External metadata source to pull cover candidates from (default: openlibrary)",
     )
     covers_parser.add_argument(
         "--user-folder",

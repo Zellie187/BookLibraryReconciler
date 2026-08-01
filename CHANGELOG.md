@@ -4,6 +4,52 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.6.0 - Google Books provider
+
+Part of the spec's v2.1.0 "additional providers" scope, built ahead of
+the v2.0.0 GUI since it only needed the real-provider pattern v1.5.0
+already established - numbered v1.6.0 rather than v2.1.0 to keep
+version numbers strictly increasing in actual ship order (see the
+reordering note at the top of `docs/architecture/Roadmap.md`).
+
+### Added
+- `providers/googlebooks/googlebooks_provider.py` - real
+  `GoogleBooksProvider.find_candidates()`: ISBN lookup
+  (`q=isbn:...`) with a title/author search fallback
+  (`q=intitle:...+inauthor:...`, up to 5 candidates) - the same
+  two-strategy shape as `OpenLibraryProvider`.
+- Reuses `ResponseCache` (own `cache/googlebooks/` folder, 1-week
+  TTL), offline mode, and a 1-second rate-limit throttle - identical
+  pattern to Open Library, new constants in `config/providers.py`.
+- Optional `GOOGLE_BOOKS_API_KEY` environment variable, appended to
+  requests when set (Google Books works unauthenticated too, at a
+  stricter rate limit).
+- `--provider {openlibrary,googlebooks}` added to both
+  `python run.py lookup` and `python run.py covers` (default
+  `openlibrary`).
+- `tests/test_googlebooks_provider.py` (13 tests, fake fetcher only -
+  no real network calls in the suite).
+
+### Fixed
+- `tests/test_providers.py` previously asserted `GoogleBooksProvider`
+  raises `NotImplementedError` as a stub; now that it's real, that
+  assertion would have made a live network call from inside the
+  automated test suite. Removed `GoogleBooksProvider` from that
+  parametrized stub test (caught by running the full suite after
+  implementing the provider).
+
+### Known limitation
+- Google Books' unauthenticated rate limit is stricter than Open
+  Library's, and this project's dev environment was already
+  rate-limited (`HTTP 429`) during testing. Verified live: a direct
+  `urllib` call confirmed the 429 is Google's own IP-level limit (not
+  a bug), and the full `ProviderUnavailableError` -> CLI error-message
+  path was exercised end to end against the real API. The
+  response-parsing logic itself is covered by unit tests built from
+  Google's documented response shape, not a live success call.
+
+---
+
 ## Version 1.5.1 - Cover Download Engine
 
 Completes the scope explicitly deferred out of v1.5.0.

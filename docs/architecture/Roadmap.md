@@ -12,6 +12,14 @@ where explicit build-order choices swapped two entries:
   the Report Engine and v1.5.0 is Open Library/covers** - the reverse
   of the spec document's own numbering. Content-wise nothing was
   dropped, just reordered.
+- The Google Books provider (spec's v2.1.0, planned after the v2.0.0
+  GUI) was built next instead, since it only needed the provider
+  pattern v1.5.0 already established - no GUI dependency. Since the
+  GUI (v2.0.0) hasn't shipped yet, this keeps the **1.x** line and
+  becomes **v1.6.0** rather than v2.1.0, preserving "version numbers
+  always increase in actual ship order." v2.0.0/v2.1.0 stay reserved
+  for the GUI and the *rest* of v2.1.0's original scope (Internet
+  Archive) whenever those ship.
 
 | Version | Features |
 |---|---|
@@ -22,8 +30,9 @@ where explicit build-order choices swapped two entries:
 | v1.4.0 | Report engine (CSV, Excel, HTML, JSON, PDF) - spec's v1.5.0, built first |
 | v1.5.0 | Open Library provider - spec's v1.4.0, built after |
 | v1.5.1 | Cover Download Engine, completing v1.5.0's originally-deferred scope |
+| v1.6.0 | Google Books provider - part of spec's v2.1.0, built ahead of the GUI |
 | v2.0.0 | PySide6 desktop application |
-| v2.1.0 | Additional providers (Google Books, Internet Archive, etc.) |
+| v2.1.0 | Remaining additional providers (Internet Archive, etc.) |
 | v3.0.0 | Plugin SDK and provider marketplace |
 
 ## v1.0.0-alpha (done)
@@ -214,9 +223,53 @@ image validation/quality-scoring/duplicate-detection/resize logic.
 
 Not done:
 
-- [ ] Google Books, Internet Archive, and Amazon (metadata-only) as
-      cover sources - blocked on their own provider work (v2.1.0)
+- [ ] Internet Archive and Amazon (metadata-only) as cover sources -
+      Google Books shipped as v1.6.0 (below); the rest is still
+      blocked on their own provider work
 - [ ] Perceptual/fuzzy duplicate detection - exact byte-hash only for now
+
+## v1.6.0 - Google Books provider (done)
+
+See `Providers.md` for the full write-up. Part of the spec's v2.1.0
+scope, built ahead of the v2.0.0 GUI since it only needed the real-
+provider pattern v1.5.0 already established - see the reordering note
+at the top of this doc for why it's numbered v1.6.0, not v2.1.0.
+
+- [x] Implement `GoogleBooksProvider.find_candidates()` for real:
+      ISBN lookup (`q=isbn:...`, one exact record) with title/author
+      search fallback (`q=intitle:...+inauthor:...`, several loosely-
+      matched candidates) - same two-strategy shape as
+      `OpenLibraryProvider`
+- [x] Response caching, offline mode, and rate limiting reusing the
+      exact same `ResponseCache`/throttle pattern as Open Library
+      (`config/providers.py` holds Google's own TTL/interval/timeout)
+- [x] Optional API key (`GOOGLE_BOOKS_API_KEY` env var) - Google Books
+      works unauthenticated at a lower, stricter rate limit; appended
+      to the request URL when set
+- [x] Error handling: `ProviderUnavailableError` for network failure/
+      timeout/malformed response, same as Open Library
+- [x] CLI: `--provider {openlibrary,googlebooks}` added to both
+      `lookup` and `covers` (default `openlibrary`), so either command
+      can pull from Google Books instead
+- [x] `tests/test_providers.py`'s old "GoogleBooksProvider raises
+      NotImplementedError" stub test removed now that it's real (it
+      would otherwise have made a live network call from the test
+      suite by accident - caught by running the full suite)
+
+Not done / known limitation:
+
+- [ ] A real live success-path smoke test against Google's API -
+      Google Books' unauthenticated quota is much stricter than Open
+      Library's and this project's dev environment was already rate-
+      limited (`HTTP 429`) at test time. Verified instead via a direct
+      `urllib` call outside the app (confirming the 429 is Google's own
+      IP-level limit, not a bug) plus the full error-handling path
+      (`ProviderUnavailableError` -> CLI message) working live end to
+      end. Response-parsing logic is covered by unit tests built
+      directly from Google's documented response shape. Set
+      `GOOGLE_BOOKS_API_KEY` for a higher quota if this matters for
+      real use.
+- [ ] Internet Archive provider - remaining v2.1.0 scope
 
 ## v2.0.0 - PySide6 desktop application
 
@@ -224,11 +277,11 @@ See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
 collections), settings, notifications.
 
-## v2.1.0 - Additional providers
+## v2.1.0 - Remaining additional providers
 
-Google Books, Internet Archive, and others, once v1.5.0's
-`OpenLibraryProvider` establishes the pattern for a real (non-stub)
-provider implementation.
+Internet Archive and others, once the v2.0.0 GUI ships (Google Books
+already shipped early, as v1.6.0 - see the reordering note at the top
+of this doc).
 
 ## v3.0.0 - Plugin SDK and provider marketplace
 

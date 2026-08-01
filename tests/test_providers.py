@@ -3,7 +3,6 @@ import pytest
 from models.author import Author
 from models.book import Book
 from providers.calibre.calibre_provider import CalibreProvider
-from providers.googlebooks.googlebooks_provider import GoogleBooksProvider
 from providers.isbndb.isbndb_provider import IsbndbProvider
 
 
@@ -23,7 +22,7 @@ def test_calibre_provider_returns_existing_metadata_as_a_candidate():
 
 @pytest.mark.parametrize(
     "provider_class",
-    [GoogleBooksProvider, IsbndbProvider],
+    [IsbndbProvider],
 )
 def test_unimplemented_providers_raise_not_implemented(provider_class):
 

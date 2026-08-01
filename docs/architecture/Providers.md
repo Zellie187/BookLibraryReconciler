@@ -26,7 +26,7 @@ providers/
     response_cache.py  file-based JSON cache keyed by URL, shared by any provider
     calibre/          working - wraps a book's own existing metadata
     openlibrary/       working - real HTTP calls, see below
-    googlebooks/       stub - raises NotImplementedError (planned v2.1.0)
+    googlebooks/       working - real HTTP calls, see below (v1.6.0)
     isbndb/            stub - raises NotImplementedError (planned v2.1.0)
 ```
 
@@ -110,24 +110,75 @@ network call**. The real API was hit manually (via `python -c ...` and
 mapping logic is built against, but that verification isn't part of
 `pytest`.
 
+## `GoogleBooksProvider` - how it actually works
+
+Shipped as v1.6.0, once `OpenLibraryProvider` had proven the real-
+provider pattern (injectable fetcher, cache, offline mode, throttle,
+`ProviderUnavailableError`). Same two-strategy shape:
+
+1. **ISBN lookup** (`book.isbn` present) - `q=isbn:<isbn>` against the
+   `volumes` endpoint. Google Books doesn't have a dedicated
+   exact-match-by-ISBN endpoint the way Open Library's `bibkeys` API
+   does, so this is still a search query under the hood, just a very
+   precise one.
+2. **Title/author search** (no ISBN) - `q=intitle:<title>+inauthor:<author>`,
+   up to 5 candidates.
+
+```python
+provider = GoogleBooksProvider()
+candidates = provider.find_candidates(book)  # -> list[MetadataCandidate]
+```
+
+Reuses `response_cache.py`'s `ResponseCache` (own `cache/googlebooks/`
+folder), the same offline-mode/throttle/`ProviderUnavailableError`
+pattern as Open Library, and the same injectable-`fetcher` testing
+approach (`tests/test_googlebooks_provider.py` never makes a real
+network call).
+
+Two things that differ from Open Library:
+
+- **Optional API key** - `GOOGLE_BOOKS_API_KEY` (env var, read in
+  `config/providers.py`) is appended to every request when set. Google
+  Books works unauthenticated too, just at a stricter rate limit.
+- **HTTP-only cover images** - Google Books' `imageLinks` URLs come
+  back as `http://`, even though the rest of the API is `https://`;
+  `_candidate_from_item()` upgrades the scheme so a downstream fetch
+  (e.g. the Cover Download Engine) doesn't hit a blocked/mixed-content
+  request.
+
+### A real environment limitation found while testing
+
+Unlike Open Library's generous free-tier quota, Google Books'
+unauthenticated rate limit is strict enough that this project's dev
+environment was already returning `HTTP 429 Too Many Requests` at
+test time - confirmed as Google's own IP-level limit (not a bug here)
+via a direct `urllib` call outside the app. What *did* get verified
+live end-to-end is the error path: a real 429 from Google, wrapped as
+`ProviderUnavailableError`, surfaced as a clean CLI message. The
+response-parsing logic (`_candidate_from_item`, ISBN preference,
+cover-URL fallback chain) is covered by unit tests built from Google's
+documented response shape instead of a live success call. Set
+`GOOGLE_BOOKS_API_KEY` for a higher quota if this matters for real use.
+
 ## Configuration
 
 `src/config/providers.py` holds base URLs, timeouts, cache TTL, and
-rate-limit interval for Open Library, plus (for API-key providers) the
-key read from an environment variable so wiring a provider up later
+rate-limit interval per provider, plus (for API-key providers) the key
+read from an environment variable so wiring a provider up later
 doesn't need another config pass:
 
 ```python
 GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", "")
 ```
 
-## CLI: `python run.py lookup <book_id>`
+## CLI: `python run.py lookup <book_id> [--provider {openlibrary,googlebooks}]`
 
 Read-only metadata comparison - Calibre's current values next to every
-Open Library candidate found. Nothing is written; there's no `--apply`
-because deciding *which* fields to trust and overwrite is a real policy
-question the project hasn't answered yet (see `Roadmap.md`). Add
-`--offline` to only consult the cache.
+candidate the chosen provider finds (`openlibrary` by default).
+Nothing is written; there's no `--apply` because deciding *which*
+fields to trust and overwrite is a real policy question the project
+hasn't answered yet (see `Roadmap.md`). Add `--offline` to only
+consult the cache.
 
 ## Cover Download Engine (`src/repair/cover_finder.py`, `cover_applier.py`)
 
@@ -138,14 +189,14 @@ own image-handling logic rather than being rushed as part of v1.5.0.
 `CoverFinder` gathers candidate cover images from two sources and
 never writes anything - it only downloads, validates, and scores:
 
-- **Open Library** - reuses the `cover_url` a provider candidate
-  already carries (from `OpenLibraryProvider.find_candidates()`), so a
-  `covers` call that already ran a `lookup`-style provider query
-  doesn't pay for a second HTTP round-trip.
+- **Open Library or Google Books** - reuses the `cover_url` a provider
+  candidate already carries (from `find_candidates()`, whichever
+  provider `--provider` selects), so a `covers` call that already ran
+  a `lookup`-style query doesn't pay for a second HTTP round-trip.
 - **User folder** (optional, `--user-folder PATH`) - local files named
   `<book_id>.jpg`/`.png`/`.webp`, for covers found by hand outside the
-  tool. Google Books, Internet Archive, and Amazon (metadata-only)
-  remain unimplemented, blocked on their own provider work (v2.1.0).
+  tool. Internet Archive and Amazon (metadata-only) remain
+  unimplemented, blocked on their own provider work (v2.1.0).
 
 Each candidate is downloaded via the same dependency-injected
 `fetcher` pattern as `OpenLibraryProvider`, then validated with
@@ -175,6 +226,7 @@ as `cover.jpg` in the book's folder, and updates `has_cover` in
 
 ```
 python run.py covers <book_id>                    # preview only
+python run.py covers <book_id> --provider googlebooks  # pull candidates from Google Books instead
 python run.py covers <book_id> --apply --best      # save the top-scoring valid, non-duplicate candidate
 python run.py covers <book_id> --apply --candidate 2   # save a specific candidate from the preview list
 ```
