@@ -4,6 +4,45 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 1.7.0 - Internet Archive provider
+
+The last piece of the spec's v2.1.0 "additional providers" scope,
+built ahead of the v2.0.0 GUI for the same reason as v1.6.0 - only
+needed the real-provider pattern v1.5.0 already established.
+
+### Added
+- `providers/internetarchive/internetarchive_provider.py` - real
+  `InternetArchiveProvider.find_candidates()`: ISBN lookup
+  (`q=isbn:...`) with a title/author search fallback
+  (`q=title:(...)+AND+creator:(...)`), both restricted to
+  `mediatype:texts` against archive.org's `advancedsearch.php` - a
+  general-purpose search API over the whole archive, not a
+  books-specific endpoint, so the media-type filter keeps results to
+  scanned books/documents.
+- Cover images via archive.org's `/services/img/<identifier>`
+  endpoint.
+- Reuses `ResponseCache` (own `cache/internetarchive/` folder,
+  1-week TTL), offline mode, and the same rate-limit throttle pattern
+  as Open Library/Google Books - no API key needed, archive.org's
+  search API is free and public.
+- Handles real-world field-shape variance confirmed against live API
+  responses: archive.org's `creator`/`isbn`/`publisher`/`description`
+  fields come back as either a plain string or a list depending on
+  the item; `_as_list`/`_first` helpers normalize both.
+- `--provider internetarchive` now selectable on `lookup`/`covers` -
+  no argparse changes needed, both commands already read `choices`
+  dynamically from the `PROVIDERS` registry.
+- `tests/test_internetarchive_provider.py` (13 tests, fake fetcher
+  only - no real network calls in the suite).
+- Verified live against the real archive.org API: found *The
+  Shining* by ISBN and 147 real matches for "Pride and Prejudice" by
+  title/author (also exercising the string-vs-list field handling);
+  the bundled sample library's intentionally messy titles don't match
+  anything real, confirmed handled as a clean "no matches" across
+  several book ids rather than an error.
+
+---
+
 ## Version 1.6.0 - Google Books provider
 
 Part of the spec's v2.1.0 "additional providers" scope, built ahead of

@@ -27,6 +27,7 @@ providers/
     calibre/          working - wraps a book's own existing metadata
     openlibrary/       working - real HTTP calls, see below
     googlebooks/       working - real HTTP calls, see below (v1.6.0)
+    internetarchive/   working - real HTTP calls, see below (v1.7.0)
     isbndb/            stub - raises NotImplementedError (planned v2.1.0)
 ```
 
@@ -160,6 +161,55 @@ cover-URL fallback chain) is covered by unit tests built from Google's
 documented response shape instead of a live success call. Set
 `GOOGLE_BOOKS_API_KEY` for a higher quota if this matters for real use.
 
+## `InternetArchiveProvider` - how it actually works
+
+Shipped as v1.7.0, the last piece of the spec's v2.1.0 "additional
+providers" scope. Same two-strategy shape again:
+
+1. **ISBN lookup** (`book.isbn` present) - `q=isbn:<isbn> AND mediatype:texts`.
+2. **Title/author search** (no ISBN) - `q=title:("<title>") AND creator:("<author>") AND mediatype:texts`.
+
+```python
+provider = InternetArchiveProvider()
+candidates = provider.find_candidates(book)  # -> list[MetadataCandidate]
+```
+
+Archive.org's `advancedsearch.php` is a general-purpose search API
+over *everything* in the archive - books, audio, video, software,
+web captures - not a books-specific endpoint the way Open Library's
+`bibkeys` API is. `mediatype:texts` is what keeps results to scanned
+books/documents; without it, an ISBN or title search can surface
+unrelated media. Cover images come from the well-known
+`/services/img/<identifier>` endpoint, which redirects to whatever
+thumbnail the item actually has (not guaranteed for every item, same
+caveat as any other provider's `cover_url`).
+
+No API key needed - archive.org's search API is free and public, with
+a much more generous unauthenticated rate limit than Google Books.
+Reuses the exact same `ResponseCache`/offline-mode/throttle/
+`ProviderUnavailableError` pattern as the other two providers.
+
+### A real field-shape quirk, confirmed against live API responses
+
+Unlike Open Library and Google Books' more consistent JSON shapes,
+archive.org's `creator`, `isbn`, `publisher`, and `description` fields
+come back as either a **plain string** (when an item has exactly one
+value) or a **list** (when it has several) - confirmed by hitting the
+real API directly rather than assumed. `_as_list()`/`_first()`
+normalize both shapes so `_candidate_from_doc()` doesn't need to
+special-case either one.
+
+### Verified live
+
+Raw `urllib` calls against the real API confirmed the ISBN query finds
+*The Shining* by its real ISBN, and the title/author query finds 147
+real matches for "Pride and Prejudice" - both exercising the
+string-vs-list field handling above. Through the app itself, several
+books from the bundled sample library (whose titles are *deliberately*
+messy - that's this whole tool's premise) correctly returned "no
+matches" rather than an error, since a garbled title like "Berry,
+Steve" naturally won't match anything real.
+
 ## Configuration
 
 `src/config/providers.py` holds base URLs, timeouts, cache TTL, and
@@ -171,14 +221,17 @@ doesn't need another config pass:
 GOOGLE_BOOKS_API_KEY = os.environ.get("GOOGLE_BOOKS_API_KEY", "")
 ```
 
-## CLI: `python run.py lookup <book_id> [--provider {openlibrary,googlebooks}]`
+## CLI: `python run.py lookup <book_id> [--provider {openlibrary,googlebooks,internetarchive}]`
 
 Read-only metadata comparison - Calibre's current values next to every
 candidate the chosen provider finds (`openlibrary` by default).
 Nothing is written; there's no `--apply` because deciding *which*
 fields to trust and overwrite is a real policy question the project
 hasn't answered yet (see `Roadmap.md`). Add `--offline` to only
-consult the cache.
+consult the cache. Adding a new entry to `PROVIDERS` in `main.py` is
+the only change needed for the CLI to pick it up - the argparse
+`choices` for both `lookup` and `covers` read from that registry
+dynamically.
 
 ## Cover Download Engine (`src/repair/cover_finder.py`, `cover_applier.py`)
 
@@ -189,14 +242,15 @@ own image-handling logic rather than being rushed as part of v1.5.0.
 `CoverFinder` gathers candidate cover images from two sources and
 never writes anything - it only downloads, validates, and scores:
 
-- **Open Library or Google Books** - reuses the `cover_url` a provider
-  candidate already carries (from `find_candidates()`, whichever
-  provider `--provider` selects), so a `covers` call that already ran
-  a `lookup`-style query doesn't pay for a second HTTP round-trip.
+- **Open Library, Google Books, or Internet Archive** - reuses the
+  `cover_url` a provider candidate already carries (from
+  `find_candidates()`, whichever provider `--provider` selects), so a
+  `covers` call that already ran a `lookup`-style query doesn't pay
+  for a second HTTP round-trip.
 - **User folder** (optional, `--user-folder PATH`) - local files named
   `<book_id>.jpg`/`.png`/`.webp`, for covers found by hand outside the
-  tool. Internet Archive and Amazon (metadata-only) remain
-  unimplemented, blocked on their own provider work (v2.1.0).
+  tool. Amazon (metadata-only) remains unimplemented, and ISBNdb needs
+  a paid API key this project doesn't have (v2.1.0).
 
 Each candidate is downloaded via the same dependency-injected
 `fetcher` pattern as `OpenLibraryProvider`, then validated with

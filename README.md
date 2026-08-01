@@ -8,7 +8,8 @@ metadata, and can safely reorganize messy filenames/folders into a clean
 Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
-Download Engine + v1.6.0 Google Books provider shipped.
+Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
+Archive provider shipped.
 
 ## Requirements
 
@@ -18,9 +19,10 @@ Download Engine + v1.6.0 Google Books provider shipped.
   trying the tool out before pointing it at your own books.
 - Internet access, only for `python run.py lookup` and
   `python run.py covers` (both query Open Library by default, or
-  Google Books with `--provider googlebooks`) — every other command
-  works fully offline. `--offline` on either restricts them to the
-  local response cache.
+  Google Books/Internet Archive with `--provider googlebooks` /
+  `--provider internetarchive`) — every other command works fully
+  offline. `--offline` on either restricts them to the local response
+  cache.
 - `Pillow` (already in `requirements.txt`) for `python run.py covers` -
   only imported when that command actually validates or saves an image.
 
@@ -78,30 +80,33 @@ to write the full results to `output/health_report.csv` /
 Read-only: prints Calibre's current metadata for a book id next to
 every candidate the chosen provider finds for it (ISBN lookup if the
 book has one, otherwise a title/author search). `--provider` picks
-`openlibrary` (default) or `googlebooks`. Nothing is written - there's
-no `--apply` yet, since deciding which fields to trust and overwrite is
-a real policy question this project hasn't answered. Responses are
-cached (`cache/openlibrary/` or `cache/googlebooks/`, 1-week TTL);
-`--offline` only consults that cache and never touches the network.
-See `docs/architecture/Providers.md` for a real data-quality surprise
-found while building the Open Library provider (unrelated books
-returned for bogus ISBNs, rather than a clean "not found"), and a real
-rate-limit constraint found while building the Google Books one.
+`openlibrary` (default), `googlebooks`, or `internetarchive`. Nothing
+is written - there's no `--apply` yet, since deciding which fields to
+trust and overwrite is a real policy question this project hasn't
+answered. Responses are cached per-provider under `cache/`, 1-week
+TTL; `--offline` only consults that cache and never touches the
+network. See `docs/architecture/Providers.md` for a real data-quality
+surprise found while building the Open Library provider (unrelated
+books returned for bogus ISBNs, rather than a clean "not found"), a
+real rate-limit constraint found while building the Google Books one,
+and a real field-shape quirk (string vs. list) found while building
+the Internet Archive one.
 
 ```bash
 python run.py lookup 1
 python run.py lookup 1 --offline
 python run.py lookup 1 --provider googlebooks
+python run.py lookup 1 --provider internetarchive
 ```
 
 ### How `covers` works
 
 Preview-first, same pattern as `repair`/`organize`: finds cover
 candidates for a book from the chosen provider (`--provider
-openlibrary`, the default, or `googlebooks`) - reusing the `cover_url`
-a `lookup`-style call already found, no extra round-trip - and, if
-given `--user-folder PATH`, from local files named
-`<book_id>.jpg/.png/.webp` in that folder. Each candidate is downloaded
+openlibrary`, the default, or `googlebooks`/`internetarchive`) -
+reusing the `cover_url` a `lookup`-style call already found, no extra
+round-trip - and, if given `--user-folder PATH`, from local files
+named `<book_id>.jpg/.png/.webp` in that folder. Each candidate is downloaded
 and validated (format, resolution, aspect ratio, corruption, file
 size) and scored 0-100; candidates matching the book's existing cover
 byte-for-byte are flagged as duplicates. Nothing is written by
@@ -222,7 +227,7 @@ Domain Models       (src/models)
 Metadata Engine     (src/metadata)      -- completeness/health scoring, validation, repair suggestions
 Repair Engine       (src/repair)        -- reorganize/repair plan + apply + backup, cover find/apply
 Reports             (src/reports)       -- CSV/JSON/HTML/Excel/PDF behind a common interface
-Providers           (src/providers)     -- pluggable metadata sources (Calibre, Open Library, Google Books work; ISBNdb is a stub)
+Providers           (src/providers)     -- pluggable metadata sources (Calibre, Open Library, Google Books, Internet Archive work; ISBNdb is a stub)
 Configuration       (src/config)        -- paths, Settings/config.json, constants
 ```
 
@@ -233,10 +238,11 @@ is in `docs/architecture/` - start with `Architecture.md` and
 ## Not implemented yet
 
 - ISBNdb provider — an interface-conformant stub in `src/providers/`
-  that raises `NotImplementedError` (planned v2.1.0). Calibre, Open
-  Library, and Google Books are all wired up as working providers
-  (`src/providers/calibre/`, `openlibrary/`, `googlebooks/`).
-- Internet Archive as a metadata/cover provider — not started (v2.1.0).
+  that raises `NotImplementedError`; needs a paid API key this
+  project doesn't have (planned v2.1.0). Calibre, Open Library,
+  Google Books, and Internet Archive are all wired up as working
+  providers (`src/providers/calibre/`, `openlibrary/`, `googlebooks/`,
+  `internetarchive/`).
 - Applying a provider's metadata back into `metadata.db` — `lookup`
   shows the comparison; there's no write path yet (a real policy
   question, not just an implementation gap — see `docs/architecture/Roadmap.md`).

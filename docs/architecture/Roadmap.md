@@ -12,14 +12,14 @@ where explicit build-order choices swapped two entries:
   the Report Engine and v1.5.0 is Open Library/covers** - the reverse
   of the spec document's own numbering. Content-wise nothing was
   dropped, just reordered.
-- The Google Books provider (spec's v2.1.0, planned after the v2.0.0
-  GUI) was built next instead, since it only needed the provider
-  pattern v1.5.0 already established - no GUI dependency. Since the
-  GUI (v2.0.0) hasn't shipped yet, this keeps the **1.x** line and
-  becomes **v1.6.0** rather than v2.1.0, preserving "version numbers
-  always increase in actual ship order." v2.0.0/v2.1.0 stay reserved
-  for the GUI and the *rest* of v2.1.0's original scope (Internet
-  Archive) whenever those ship.
+- The Google Books and Internet Archive providers (spec's v2.1.0,
+  planned after the v2.0.0 GUI) were built next instead, since they
+  only needed the provider pattern v1.5.0 already established - no
+  GUI dependency. Since the GUI (v2.0.0) hasn't shipped yet, both keep
+  the **1.x** line - **v1.6.0** and **v1.7.0** - rather than v2.1.0,
+  preserving "version numbers always increase in actual ship order."
+  v2.0.0/v2.1.0 stay reserved for the GUI and whatever's left of
+  v2.1.0's original scope (ISBNdb) whenever those ship.
 
 | Version | Features |
 |---|---|
@@ -31,8 +31,9 @@ where explicit build-order choices swapped two entries:
 | v1.5.0 | Open Library provider - spec's v1.4.0, built after |
 | v1.5.1 | Cover Download Engine, completing v1.5.0's originally-deferred scope |
 | v1.6.0 | Google Books provider - part of spec's v2.1.0, built ahead of the GUI |
+| v1.7.0 | Internet Archive provider - part of spec's v2.1.0, built ahead of the GUI |
 | v2.0.0 | PySide6 desktop application |
-| v2.1.0 | Remaining additional providers (Internet Archive, etc.) |
+| v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
 
 ## v1.0.0-alpha (done)
@@ -269,7 +270,46 @@ Not done / known limitation:
       directly from Google's documented response shape. Set
       `GOOGLE_BOOKS_API_KEY` for a higher quota if this matters for
       real use.
-- [ ] Internet Archive provider - remaining v2.1.0 scope
+
+## v1.7.0 - Internet Archive provider (done)
+
+See `Providers.md` for the full write-up. The last piece of the
+spec's v2.1.0 scope built ahead of the GUI - same reasoning as
+v1.6.0's Google Books provider.
+
+- [x] Implement `InternetArchiveProvider.find_candidates()` for real:
+      ISBN lookup (`q=isbn:...`) with title/author search fallback
+      (`q=title:(...)+AND+creator:(...)`), both restricted to
+      `mediatype:texts` against archive.org's `advancedsearch.php` -
+      a general-purpose search API over the whole archive, not a
+      books-specific endpoint, so the media-type filter is what keeps
+      results to scanned books/documents
+- [x] Cover images via the well-known `/services/img/<identifier>`
+      endpoint
+- [x] Response caching, offline mode, rate limiting, and
+      `ProviderUnavailableError` handling - identical pattern to Open
+      Library and Google Books (own `cache/internetarchive/` folder,
+      no API key needed - archive.org's search API is free/public)
+- [x] Handles real-world field-shape variance found while building
+      this: archive.org's `creator`/`isbn`/`publisher`/`description`
+      fields come back as either a plain string or a list depending
+      on the item, confirmed against live API responses (`_as_list`/
+      `_first` helpers normalize both)
+- [x] CLI: `--provider internetarchive` added to `PROVIDERS` (no
+      argparse changes needed - both `lookup` and `covers` already
+      read `choices` dynamically from the registry)
+- [x] Verified live against the real API: raw `urllib` calls
+      confirmed the ISBN query finds *The Shining* by its real ISBN,
+      and 147 real matches for "Pride and Prejudice" by title/author
+      (also exercising the string-vs-list field-shape handling); the
+      bundled sample library's intentionally messy titles (the whole
+      premise of this tool) don't match anything real, which the app
+      handles as a clean "no matches" rather than an error - tested
+      across several book ids
+
+Not done: ISBNdb provider remains a stub (needs a paid API key this
+project doesn't have to verify against - see `Roadmap.md`'s v2.1.0
+entry).
 
 ## v2.0.0 - PySide6 desktop application
 
@@ -279,9 +319,10 @@ collections), settings, notifications.
 
 ## v2.1.0 - Remaining additional providers
 
-Internet Archive and others, once the v2.0.0 GUI ships (Google Books
-already shipped early, as v1.6.0 - see the reordering note at the top
-of this doc).
+ISBNdb, once the v2.0.0 GUI ships (Google Books and Internet Archive
+already shipped early, as v1.6.0/v1.7.0 - see the reordering note at
+the top of this doc). Needs a paid API key to implement and verify for
+real, unlike Google Books/Internet Archive/Open Library.
 
 ## v3.0.0 - Plugin SDK and provider marketplace
 

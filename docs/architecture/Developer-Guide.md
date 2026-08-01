@@ -91,8 +91,9 @@ src/
     reports/        ReportWriter + CsvReport/JsonReport/HtmlReport/ExcelReport/PdfReport
                     (see Reports.md)
     providers/      MetadataProvider, ProviderUnavailableError, ResponseCache
-                    (see Providers.md); calibre/, openlibrary/, and
-                    googlebooks/ are real, isbndb/ is a stub
+                    (see Providers.md); calibre/, openlibrary/,
+                    googlebooks/, and internetarchive/ are real,
+                    isbndb/ is a stub (needs a paid API key)
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)
     utils/          logger.py (not yet wired into the CLI)
 tests/              pytest suite + tests/conftest.py fixtures
