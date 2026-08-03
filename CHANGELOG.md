@@ -4,6 +4,42 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.6 - Cover Finder dialog
+
+Sixth slice of the GUI MVP - the GUI equivalent of the CLI's `covers`
+command, and the first GUI slice that actually writes anything.
+
+### Added
+- `src/gui/cover_finder_dialog.py` - `CoverFinderDialog`: provider
+  dropdown (Open Library/Google Books/Internet Archive) + offline
+  checkbox + "Find Candidates" button, a list of candidates (source/
+  dimensions/format/score/valid/duplicate), and "Apply Best"/"Apply
+  Selected" buttons - reachable via a new "Find Cover..." button on
+  `BookDetailDialog`.
+- Reuses the CLI's already-decided `covers --apply --best|--candidate
+  N` semantics as-is (backup-first, resize, convert to JPEG, update
+  `has_cover`) - not blocked by an unanswered policy question the way
+  applying provider *metadata* is.
+- `format_candidate_line()`/`pick_best_candidate()`: plain functions
+  kept separate from the dialog for testability - `tests/
+  test_gui_cover_finder_dialog.py` (8 tests).
+- `MainWindow`/`BookDetailDialog` now thread `library_root`/
+  `database_path` through, needed by `CoverFinder`/`CoverApplier`/
+  `backup_database`.
+- After the detail dialog closes, `MainWindow` repaints the library
+  table instead of reloading it, since `book_at()` returns the same
+  `Book` object the cover dialog may have mutated - avoids resetting
+  an active search filter or a redundant database round-trip.
+- Verified live end-to-end against the real Open Library API and a
+  throwaway copy of the sample database: found 3 real candidates for
+  book #1, applied the best one through the dialog's actual code path
+  (`QMessageBox` patched to no-ops so the unattended smoke test
+  doesn't hang on a modal popup), confirmed `cover.jpg` was written
+  and `has_cover` persisted via a fresh database read, and confirmed
+  the real committed sample library was untouched throughout.
+
+---
+
 ## Version 2.0.0-alpha.5 - Settings tab
 
 Fifth slice of the GUI MVP - reads and writes `Settings/config.json`

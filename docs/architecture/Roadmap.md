@@ -46,6 +46,7 @@ where explicit build-order choices swapped two entries:
 | v2.0.0-alpha.3 | GUI MVP: read-only Metadata Comparison dialog |
 | v2.0.0-alpha.4 | GUI MVP: Reports tab (the 4 CLI report presets, as text) |
 | v2.0.0-alpha.5 | GUI MVP: Settings tab (edits Settings/config.json) |
+| v2.0.0-alpha.6 | GUI MVP: Cover Finder dialog (find + apply a cover) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -503,12 +504,62 @@ Dashboard, Metadata Comparison, Reports, and Settings - grid/list
 views, repair wizard, instant/saved/smart search, notifications, GUI
 provider picker for `covers`.
 
+## v2.0.0-alpha.6 - Cover Finder dialog (done)
+
+See `GUI.md` for the full write-up. Sixth slice of the GUI MVP - the
+GUI equivalent of the CLI's `covers` command, and the first GUI slice
+that actually writes anything (a `cover.jpg` + `has_cover`), unlike
+every prior slice. Not blocked by an unanswered policy question the
+way applying provider *metadata* is: the CLI's `covers --apply --best|
+--candidate N` semantics (backup-first, resize, convert to JPEG,
+update `has_cover`) were already decided and tested back in v1.5.1 -
+this dialog just reuses them as-is.
+
+- [x] `src/gui/cover_finder_dialog.py` - `CoverFinderDialog`: provider
+      dropdown (Open Library/Google Books/Internet Archive) + offline
+      checkbox + "Find Candidates" button, a list of candidates
+      (source/dimensions/format/score/valid/duplicate), and "Apply
+      Best"/"Apply Selected" buttons. Reachable via a new "Find
+      Cover..." button on `BookDetailDialog`.
+- [x] `format_candidate_line()` and `pick_best_candidate()`: plain
+      functions (no Qt, no network) kept separate from the dialog for
+      the same testability reason as every other GUI slice's helper
+      functions - `tests/test_gui_cover_finder_dialog.py` (8 tests).
+- [x] `MainWindow`/`BookDetailDialog` now thread `library_root` and
+      `database_path` through (previously only `library_service`/
+      `search_service` were passed) - needed for `CoverFinder`,
+      `CoverApplier`, and `backup_database`, which all need real
+      filesystem paths, not just the service layer.
+- [x] After closing the detail dialog, `MainWindow` repaints the
+      table (`table_model.layoutChanged.emit()`) rather than reloading
+      it from the database - `book_at()` returns the same `Book`
+      object `CoverFinderDialog` may have mutated (`has_cover`), so a
+      repaint reflects the change without resetting an active search
+      filter or paying for a redundant database round-trip.
+- [x] Verified live end-to-end against the real Open Library API and
+      a throwaway copy of the sample database (same pattern as
+      v1.5.1's original verification): found 3 real candidates for
+      book #1, applied the best one through the dialog's actual
+      `apply_best()`/`_apply()` code path (with `QMessageBox.
+      information()`/`.warning()` patched to no-ops so the unattended
+      smoke test doesn't hang on a modal popup - the same lesson
+      learned earlier with `QMessageBox.warning()` in the Metadata
+      Comparison dialog's own smoke test), confirmed `cover.jpg` was
+      written and `has_cover` was persisted via a fresh read from the
+      database copy, and confirmed the real committed sample library
+      was untouched throughout (`git status` clean).
+
+Not done: everything else on v2.0.0-alpha's original list except
+Dashboard, Metadata Comparison, Reports, Settings, and Cover Finder -
+grid/list views, repair wizard, instant/saved/smart search,
+notifications.
+
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
 collections), settings, notifications. v2.0.0-alpha through
-v2.0.0-alpha.5 (above) are the first five slices; this entry is done
+v2.0.0-alpha.6 (above) are the first six slices; this entry is done
 when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers

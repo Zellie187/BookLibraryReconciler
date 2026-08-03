@@ -1,14 +1,15 @@
-# GUI (v2.0.0-alpha through v2.0.0-alpha.5 shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha through v2.0.0-alpha.6 shipped, v2.0.0 planned)
 
 An MVP is built: `python run.py gui` opens a four-tab window - a
 searchable library table with a read-only book detail dialog (which
-itself opens a read-only Metadata Comparison dialog), a Dashboard tab
-showing library health at a glance, a Reports tab rendering the 4 CLI
-report presets as text, and a Settings tab editing
-`Settings/config.json`. See `Roadmap.md`'s v2.0.0-alpha through
-v2.0.0-alpha.5 entries for the full list of what's done. This document
-covers the design decisions - both the ones already implemented and
-the ones still ahead for the full v2.0.0 scope.
+opens a read-only Metadata Comparison dialog and a Cover Finder dialog
+that *can* save a cover), a Dashboard tab showing library health at a
+glance, a Reports tab rendering the 4 CLI report presets as text, and
+a Settings tab editing `Settings/config.json`. See `Roadmap.md`'s
+v2.0.0-alpha through v2.0.0-alpha.6 entries for the full list of
+what's done. This document covers the design decisions - both the
+ones already implemented and the ones still ahead for the full
+v2.0.0 scope.
 
 ## Technology
 
@@ -28,6 +29,7 @@ gui/
     metadata_comparison_dialog.py MetadataComparisonDialog - Calibre vs. a chosen provider
     report_viewer_widget.py       ReportViewerWidget - the 4 CLI report presets, as text
     settings_widget.py            SettingsWidget - edits Settings/config.json
+    cover_finder_dialog.py        CoverFinderDialog - find + apply a cover (writes cover.jpg)
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -92,6 +94,29 @@ The library-folder field is validated (must exist) before saving; the
 `metadata.db` field is optional and unvalidated (Calibre's own default
 location, `<library_path>/metadata.db`, is used when it's left blank).
 
+`CoverFinderDialog` (opened via a "Find Cover..." button on
+`BookDetailDialog`) is the GUI equivalent of `python run.py covers` -
+and the first GUI slice that actually writes anything. Unlike the
+Metadata Comparison dialog, this isn't blocked by an unanswered policy
+question: the CLI's `covers --apply --best|--candidate N` semantics
+(backup-first, resize, convert to JPEG, update `has_cover`) were
+already decided and tested back in v1.5.1, so this dialog just calls
+the same `CoverFinder`/`CoverApplier`/`backup_database` the CLI does,
+with the same provider dropdown/offline checkbox as Metadata
+Comparison. `format_candidate_line()` and `pick_best_candidate()` are,
+once again, plain functions kept separate from the dialog for
+testability. Because `MainWindow`/`BookDetailDialog` previously only
+threaded `library_service`/`search_service` through (no filesystem
+paths), this slice added `library_root`/`database_path` to both
+constructors - `CoverFinder`/`CoverApplier`/`backup_database` all need
+real paths, not just the service layer. After the detail dialog
+closes, `MainWindow` repaints the library table
+(`table_model.layoutChanged.emit()`) rather than reloading it, since
+`book_at()` returns the same `Book` object `CoverFinderDialog` may
+have just mutated (`has_cover`) - a repaint picks up the change
+without resetting an active search filter or paying for a redundant
+database round-trip.
+
 ## CLI: `python run.py gui`
 
 No arguments. Launches the window and blocks on Qt's event loop
@@ -144,9 +169,10 @@ Actions run.
   GUI itself - the tab shows the same numbers on screen, but saving to
   disk in a specific format is still CLI-only (`python run.py report
   --format ...`).
-- Cover Download Engine front-end, and a `--provider` picker in the
-  GUI matching the CLI's `openlibrary`/`googlebooks`/`internetarchive`
-  choice.
+- A `--user-folder` equivalent on the Cover Finder dialog - the CLI's
+  `covers --user-folder PATH` (local files named `<book_id>.jpg/.png/
+  .webp`) has no GUI picker yet; only provider-sourced candidates are
+  shown.
 - Instant search, saved searches, search history, smart collections -
   the current search box is a manual one-shot query, same as the CLI.
 - Notifications.
@@ -175,7 +201,11 @@ Whatever the GUI ends up doing, it inherits the project's one
 non-negotiable rule: no destructive action (a metadata write, a file
 move) happens without an explicit preview step and an explicit user
 approval, mirroring `repair/organize_applier.py`'s preview/apply split.
-The MVP shipped in v2.0.0-alpha doesn't write anything at all yet, so
-this constraint hasn't been tested by the GUI itself - it becomes
-load-bearing once the repair wizard and metadata-comparison apply path
-are built.
+`CoverFinderDialog` (v2.0.0-alpha.6) is the first GUI code to actually
+exercise this: candidates are previewed first, nothing is written
+until an explicit "Apply Best"/"Apply Selected" click, and
+`backup_database()` runs before every save - the same rule, just
+proven by the GUI itself for the first time rather than only the CLI.
+It's still not load-bearing for the *bigger* remaining write paths -
+the repair wizard and a Metadata Comparison apply step - since neither
+of those exists yet.

@@ -43,11 +43,15 @@ from gui.settings_widget import SettingsWidget
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, library_service, search_service, parent=None):
+    def __init__(
+        self, library_service, search_service, library_root=None, database_path=None, parent=None
+    ):
 
         super().__init__(parent)
 
         self.library_service = library_service
+        self.library_root = library_root
+        self.database_path = database_path
         self.search_controller = SearchController(search_service)
 
         self.setWindowTitle("Book Library Reconciler")
@@ -129,5 +133,16 @@ class MainWindow(QMainWindow):
         if book is None:
             return
 
-        dialog = BookDetailDialog(book, parent=self)
+        dialog = BookDetailDialog(
+            book,
+            library_root=self.library_root,
+            library_service=self.library_service,
+            database_path=self.database_path,
+            parent=self,
+        )
         dialog.exec()
+
+        # book_at() returns the same Book object CoverFinderDialog may
+        # have mutated (has_cover) - repaint rather than reload, so an
+        # active search filter isn't reset by closing the detail dialog.
+        self.table_model.layoutChanged.emit()

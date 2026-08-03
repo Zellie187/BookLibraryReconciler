@@ -9,9 +9,10 @@ Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
-Archive provider + v2.0.0-alpha through v2.0.0-alpha.5 GUI MVP
-(library/dashboard/reports/settings tabs, metadata comparison) shipped.
-See `docs/architecture/Roadmap.md` for what each GUI slice added.
+Archive provider + v2.0.0-alpha through v2.0.0-alpha.6 GUI MVP
+(library/dashboard/reports/settings tabs, metadata comparison, cover
+finder) shipped. See `docs/architecture/Roadmap.md` for what each GUI
+slice added.
 
 ## Requirements
 
@@ -132,7 +133,7 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.5 - see
+An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.6 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
 planned for the complete v2.0.0 scope) with four tabs:
 
@@ -143,7 +144,9 @@ planned for the complete v2.0.0 scope) with four tabs:
   `rating>=4`, etc. all work identically. The detail dialog has a
   "Compare Metadata..." button opening a side-by-side comparison
   against a chosen provider (Open Library/Google Books/Internet
-  Archive) - the GUI equivalent of `lookup`, same read-only scope.
+  Archive) - the GUI equivalent of `lookup`, same read-only scope -
+  and a "Find Cover..." button opening the GUI equivalent of `covers`,
+  which *can* save a cover (backup-first, same as the CLI).
 - **Dashboard** - library health at a glance (total books, unique
   authors/series, average health score, missing ISBN/cover/
   description, duplicate/series-order issue counts) - the same
@@ -156,10 +159,12 @@ planned for the complete v2.0.0 scope) with four tabs:
   `metadata_db`) instead of hand-editing the file; takes effect the
   next time you launch the app, not live.
 
-Every part of the GUI is read-only with respect to `metadata.db`, same
-as `lookup` - Settings is the one tab that writes anything, and it
-only ever writes to `Settings/config.json`, a separate file the CLI
-setup instructions above already have you edit by hand. Needs
+Everything in the GUI is read-only except two write paths, both
+reusing the CLI's own already-decided, backup-first semantics rather
+than inventing new ones: Settings (writes `Settings/config.json`, a
+separate file the CLI setup instructions above already have you edit
+by hand) and the cover finder (writes `cover.jpg` + `has_cover`,
+exactly like `covers --apply`). Needs
 `PySide6`, installed via `requirements.txt`.
 
 ```bash

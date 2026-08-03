@@ -248,7 +248,12 @@ def run_gui(args, app):
 
     qt_app = QApplication.instance() or QApplication(sys.argv)
 
-    window = MainWindow(app.library_service, app.search_service)
+    window = MainWindow(
+        app.library_service,
+        app.search_service,
+        library_root=app.library_root,
+        database_path=app.database_path,
+    )
     window.show()
 
     sys.exit(qt_app.exec())
