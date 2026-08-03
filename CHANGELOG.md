@@ -4,6 +4,34 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.2 - Dashboard tab
+
+Second slice of the GUI MVP - library health at a glance, the first
+item from v2.0.0-alpha's "not done" list.
+
+### Added
+- `src/gui/dashboard_widget.py` - `DashboardWidget`: a new "Dashboard"
+  tab alongside "Library" in `MainWindow` (now a `QTabWidget`). Shows
+  total books, unique authors/series, average health score, books
+  needing attention, missing ISBN/cover/description, and ISBN/title
+  duplicate group + series-order-issue counts, as a 3-column grid of
+  stat tiles with a manual "Refresh" button.
+- `compute_stats()`: a plain function (no Qt dependency, directly
+  unit-testable) computing the numbers above via `LibraryAnalyzer`/
+  `LibraryInspector` - the exact same analyzers `preview`/`analyze`
+  already use, no new business logic.
+- `tests/test_gui_dashboard_widget.py` (6 tests) - since
+  `compute_stats()` has no Qt dependency, these don't need the
+  `qt_app` fixture the table-model tests use.
+- Verified live: a headless smoke test confirming the Dashboard tab
+  populates (11 stat tiles) against the real 7,029-book sample
+  library, plus actual rendered screenshots of both tabs - the
+  Dashboard's numbers (1,468 authors, 2,365 series, 46 title
+  duplicate groups) match figures already verified elsewhere in this
+  project against the same sample library.
+
+---
+
 ## Version 2.0.0-alpha - GUI MVP
 
 First slice of the desktop application, chosen deliberately as a

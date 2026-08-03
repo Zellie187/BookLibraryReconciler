@@ -1,10 +1,12 @@
-# GUI (v2.0.0-alpha shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha + v2.0.0-alpha.2 shipped, v2.0.0 planned)
 
-An MVP is built: `python run.py gui` opens a searchable library table
-with a read-only book detail dialog. See `Roadmap.md`'s v2.0.0-alpha
-entry for the full list of what's done. This document covers the
-design decisions - both the ones already implemented and the ones
-still ahead for the full v2.0.0 scope.
+An MVP is built: `python run.py gui` opens a two-tab window - a
+searchable library table with a read-only book detail dialog, and a
+Dashboard tab showing library health at a glance. See `Roadmap.md`'s
+v2.0.0-alpha and v2.0.0-alpha.2 entries for the full list of what's
+done. This document covers the design decisions - both the ones
+already implemented and the ones still ahead for the full v2.0.0
+scope.
 
 ## Technology
 
@@ -17,9 +19,10 @@ missing rather than crashing with an `ImportError` traceback.
 
 ```
 gui/
-    main_window.py         MainWindow - search bar, QTableView, status bar
+    main_window.py         MainWindow - "Library"/"Dashboard" tabs, search bar, status bar
     book_table_model.py    BookTableModel - read-only QAbstractTableModel
     book_detail_dialog.py  BookDetailDialog - double-click a row for full detail
+    dashboard_widget.py    DashboardWidget - library health at a glance
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -35,6 +38,17 @@ write path. It only ever displays whatever `Book` objects it's given;
 saving/repairing/organizing stays CLI-only for now (see "Not yet
 built" below).
 
+`DashboardWidget` doesn't compute anything new either - `compute_stats()`
+is a plain function (no Qt dependency, directly unit-testable) that
+just calls `LibraryAnalyzer` and `LibraryInspector`, the exact same
+analyzers `python run.py preview`/`analyze` already use. Total books,
+unique authors/series, average health score, books needing attention,
+missing ISBN/cover/description counts, and ISBN/title duplicate group
++ series-order-issue counts, laid out as a 3-column grid of stat tiles
+with a manual "Refresh" button (no auto-refresh - recomputing
+duplicate detection over the whole library isn't instant, so it's
+opt-in, not on every keystroke or tab switch).
+
 ## CLI: `python run.py gui`
 
 No arguments. Launches the window and blocks on Qt's event loop
@@ -46,13 +60,17 @@ No arguments. Launches the window and blocks on Qt's event loop
 directly (`data()`, `headerData()`, `set_books()`, `book_at()`) without
 needing a rendered window. A session-scoped `qt_app` fixture in
 `tests/conftest.py` provides the one `QApplication` instance every GUI
-test shares (`QApplication` is a singleton - constructing a second one
-raises). `conftest.py` also sets `QT_QPA_PLATFORM=offscreen` before
-that fixture ever runs, so the suite works on a CI box with no
-attached display - CI additionally needs a few system Qt libraries
-installed via `apt` (see `.github/workflows/python.yml`) since
-PySide6's wheels don't bundle everything Linux needs, even for the
-offscreen platform.
+test that needs one shares (`QApplication` is a singleton -
+constructing a second one raises). `conftest.py` also sets
+`QT_QPA_PLATFORM=offscreen` before that fixture ever runs, so the
+suite works on a CI box with no attached display - CI additionally
+needs a few system Qt libraries installed via `apt` (see
+`.github/workflows/python.yml`) since PySide6's wheels don't bundle
+everything Linux needs, even for the offscreen platform.
+`tests/test_gui_dashboard_widget.py` tests `compute_stats()` the same
+way, but since that function has no Qt dependency at all, those tests
+don't need the `qt_app` fixture (or even `QT_QPA_PLATFORM`) in the
+first place.
 
 A real-machine caveat found while building this: under
 `QT_QPA_PLATFORM=offscreen` on this Windows dev machine, rendered text
@@ -68,8 +86,6 @@ Actions run.
 
 ## Not yet built (rest of the spec's v2.0.0 scope)
 
-- Dashboard - library health at a glance (average metadata score,
-  counts of missing ISBN/cover/description, unique authors/series).
 - Grid/list library views (table only for now).
 - Metadata comparison - side-by-side `MetadataCandidate` objects from
   multiple providers (see `Providers.md`) with a pick-a-value UI,

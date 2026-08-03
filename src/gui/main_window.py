@@ -1,16 +1,17 @@
 """
 Main Window
 
-MVP library view for the v2.0.0 desktop application: a searchable
-table of books, opening a read-only detail dialog on double-click.
-Reuses the exact same SearchController/SearchService the CLI's
-`search` command uses - the query syntax typed into the search box is
+MVP for the v2.0.0 desktop application: a "Library" tab (searchable
+table of books, opening a read-only detail dialog on double-click) and
+a "Dashboard" tab (library health at a glance). The search box reuses
+the exact same SearchController/SearchService the CLI's `search`
+command uses - the query syntax typed into the search box is
 identical to `python run.py search "..."` (see Search.md), so there is
 only one place that understands search terms.
 
-Deliberately minimal: no dashboard/metadata-comparison/report-viewer/
-settings yet (see docs/architecture/GUI.md and Roadmap.md for what's
-still planned). Read-only - nothing here writes to metadata.db.
+Deliberately minimal: no metadata-comparison/repair-wizard/report-
+viewer/settings yet (see docs/architecture/GUI.md and Roadmap.md for
+what's still planned). Read-only - nothing here writes to metadata.db.
 """
 
 from PySide6.QtWidgets import (
@@ -23,6 +24,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QTableView,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -30,6 +32,7 @@ from PySide6.QtWidgets import (
 from controllers.search_controller import SearchController
 from gui.book_detail_dialog import BookDetailDialog
 from gui.book_table_model import BookTableModel
+from gui.dashboard_widget import DashboardWidget
 
 
 class MainWindow(QMainWindow):
@@ -67,13 +70,19 @@ class MainWindow(QMainWindow):
 
         self.status_label = QLabel("Loading library...")
 
-        central = QWidget()
-        layout = QVBoxLayout(central)
-        layout.addLayout(search_row)
-        layout.addWidget(self.table_view)
-        layout.addWidget(self.status_label)
+        library_tab = QWidget()
+        library_layout = QVBoxLayout(library_tab)
+        library_layout.addLayout(search_row)
+        library_layout.addWidget(self.table_view)
+        library_layout.addWidget(self.status_label)
 
-        self.setCentralWidget(central)
+        self.dashboard_widget = DashboardWidget(library_service)
+
+        tabs = QTabWidget()
+        tabs.addTab(library_tab, "Library")
+        tabs.addTab(self.dashboard_widget, "Dashboard")
+
+        self.setCentralWidget(tabs)
 
         self.load_all_books()
 

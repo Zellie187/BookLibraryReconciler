@@ -9,7 +9,8 @@ Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
-Archive provider + v2.0.0-alpha GUI MVP shipped.
+Archive provider + v2.0.0-alpha GUI MVP + v2.0.0-alpha.2 Dashboard tab
+shipped.
 
 ## Requirements
 
@@ -130,15 +131,22 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha - see
+An MVP desktop application (v2.0.0-alpha + v2.0.0-alpha.2 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
-planned for the complete v2.0.0 scope): a searchable table of the
-whole library, and a read-only detail dialog on double-clicking a row.
-The search box reuses the exact same query syntax as `search` (it's
-the same `SearchController` underneath), so `author=King`,
-`isbn:missing`, `rating>=4`, etc. all work identically. Nothing is
-written - this is a read-only view, same as `lookup`. Needs `PySide6`,
-installed via `requirements.txt`.
+planned for the complete v2.0.0 scope) with two tabs:
+
+- **Library** - a searchable table of the whole library, and a
+  read-only detail dialog on double-clicking a row. The search box
+  reuses the exact same query syntax as `search` (it's the same
+  `SearchController` underneath), so `author=King`, `isbn:missing`,
+  `rating>=4`, etc. all work identically.
+- **Dashboard** - library health at a glance (total books, unique
+  authors/series, average health score, missing ISBN/cover/
+  description, duplicate/series-order issue counts) - the same
+  numbers `preview`/`analyze` compute, with a manual "Refresh" button.
+
+Nothing is written - both tabs are read-only, same as `lookup`. Needs
+`PySide6`, installed via `requirements.txt`.
 
 ```bash
 python run.py gui

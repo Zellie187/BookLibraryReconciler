@@ -42,6 +42,7 @@ where explicit build-order choices swapped two entries:
 | v1.6.0 | Google Books provider - part of spec's v2.1.0, built ahead of the GUI |
 | v1.7.0 | Internet Archive provider - part of spec's v2.1.0, built ahead of the GUI |
 | v2.0.0-alpha | GUI MVP: searchable library table + book detail dialog (PySide6) |
+| v2.0.0-alpha.2 | GUI MVP: Dashboard tab (library health at a glance) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -354,27 +355,49 @@ feature set in one pass.
       window and detail dialog on this machine's native Qt platform
       (not just the offscreen one) - both render correctly
 
-Not done - the rest of the spec's v2.0.0 scope:
+Not done at this point - picked up incrementally in later
+v2.0.0-alpha.N slices (below) and the rest of the spec's v2.0.0 scope.
 
-- [ ] Dashboard (library health at a glance)
-- [ ] Grid/list library views (table only for now)
-- [ ] Metadata comparison UI (`lookup`'s CLI output has no GUI
-      equivalent yet)
-- [ ] Repair wizard (visual front-end for `organize`/`repair --apply`)
-- [ ] Report viewer
-- [ ] Instant search, saved searches, search history, smart
-      collections (search box is a manual one-shot query, same as CLI)
-- [ ] Settings screen (still hand-edit `Settings/config.json`)
-- [ ] Notifications
-- [ ] Cover Download Engine / provider `--provider` selection have no
-      GUI front-end yet - CLI-only
+## v2.0.0-alpha.2 - Dashboard tab (done)
+
+See `GUI.md` for the full write-up. Second slice of the GUI MVP -
+library health at a glance, the first item from v2.0.0-alpha's "not
+done" list.
+
+- [x] `src/gui/dashboard_widget.py` - `DashboardWidget`: a "Dashboard"
+      tab alongside "Library" in `MainWindow` (now a `QTabWidget`).
+      Shows total books, unique authors/series, average health score,
+      books needing attention, missing ISBN/cover/description, and
+      ISBN/title duplicate group + series-order-issue counts as a
+      3-column grid of stat tiles, with a manual "Refresh" button (no
+      auto-refresh - recomputing duplicate detection over the whole
+      library isn't instant)
+- [x] No new business logic - `compute_stats()` is a plain function
+      (no Qt dependency) that calls `LibraryAnalyzer`/
+      `LibraryInspector`, the exact same analyzers `preview`/`analyze`
+      already use
+- [x] `tests/test_gui_dashboard_widget.py` (6 tests) against
+      `compute_stats()` directly - being a plain function, these don't
+      even need the `qt_app` fixture the table-model tests use
+- [x] Verified live: a headless smoke test confirming the Dashboard
+      tab populates (11 stat tiles) against the real 7,029-book sample
+      library, plus actual rendered screenshots of both tabs - the
+      Dashboard's numbers (1,468 authors, 2,365 series, 46 title
+      duplicate groups) match figures already verified elsewhere in
+      this project against the same sample library
+
+Not done: everything else on v2.0.0-alpha's original list except
+Dashboard - grid/list views, metadata comparison UI, repair wizard,
+report viewer, instant/saved/smart search, settings, notifications,
+GUI provider picker.
 
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
-collections), settings, notifications. v2.0.0-alpha (above) is the
-first slice; this entry is done when the rest of that list ships.
+collections), settings, notifications. v2.0.0-alpha and
+v2.0.0-alpha.2 (above) are the first two slices; this entry is done
+when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers
 
