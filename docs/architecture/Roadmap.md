@@ -43,6 +43,7 @@ where explicit build-order choices swapped two entries:
 | v1.7.0 | Internet Archive provider - part of spec's v2.1.0, built ahead of the GUI |
 | v2.0.0-alpha | GUI MVP: searchable library table + book detail dialog (PySide6) |
 | v2.0.0-alpha.2 | GUI MVP: Dashboard tab (library health at a glance) |
+| v2.0.0-alpha.3 | GUI MVP: read-only Metadata Comparison dialog |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -391,13 +392,53 @@ Dashboard - grid/list views, metadata comparison UI, repair wizard,
 report viewer, instant/saved/smart search, settings, notifications,
 GUI provider picker.
 
+## v2.0.0-alpha.3 - Metadata Comparison dialog (done)
+
+See `GUI.md` for the full write-up. Third slice of the GUI MVP - the
+GUI equivalent of the CLI's `lookup` command, another item from
+v2.0.0-alpha's "not done" list.
+
+- [x] `src/gui/metadata_comparison_dialog.py` - `MetadataComparisonDialog`:
+      Calibre's current metadata next to candidates from a chosen
+      provider (dropdown: Open Library/Google Books/Internet Archive),
+      with an "Offline (cache only)" checkbox - same options as the
+      CLI's `lookup --provider --offline`. No write path, matching
+      `lookup`'s own scope exactly (deciding which fields to trust and
+      overwrite is still an unanswered policy question).
+- [x] Reachable via a new "Compare Metadata..." button on
+      `BookDetailDialog`.
+- [x] `src/providers/registry.py` - the `{key: (label, class)}`
+      `PROVIDERS` mapping, extracted out of `main.py` so both the CLI
+      and this new GUI dialog can import it without a circular
+      dependency (`main.py` imports `gui.main_window`, so GUI code
+      can't import back from `main.py`). `main.py`'s own `lookup`/
+      `covers` commands now import it from there too - no behavior
+      change, just removes the duplication before it could happen.
+- [x] `format_comparison()`: a plain function (book + candidates ->
+      display text) kept separate from the dialog so it's testable
+      without Qt or a network call - `tests/test_gui_metadata_comparison_dialog.py`
+      (7 tests).
+- [x] Verified live against the real Open Library API: found 3 real
+      candidates for book #1 with correct ISBNs/publishers/cover URLs,
+      including one with a non-ASCII author name (confirmed rendering
+      correctly in the actual `QTextEdit` widget, screenshotted -
+      console `print()` output showed mojibake, which turned out to
+      be a terminal-encoding artifact, not a bug in the widget).
+      Switching to Google Books mid-session hit the same real rate
+      limit documented in v1.6.0's entry, handled cleanly (no crash).
+
+Not done: everything else on v2.0.0-alpha's original list except
+Dashboard and Metadata Comparison - grid/list views, repair wizard,
+report viewer, instant/saved/smart search, settings, notifications,
+GUI provider picker for `covers`.
+
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
-collections), settings, notifications. v2.0.0-alpha and
-v2.0.0-alpha.2 (above) are the first two slices; this entry is done
-when the rest of that list ships.
+collections), settings, notifications. v2.0.0-alpha,
+v2.0.0-alpha.2, and v2.0.0-alpha.3 (above) are the first three
+slices; this entry is done when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers
 

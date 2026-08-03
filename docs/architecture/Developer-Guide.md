@@ -90,13 +90,15 @@ src/
                     CoverFinder, CoverApplier, backup
     reports/        ReportWriter + CsvReport/JsonReport/HtmlReport/ExcelReport/PdfReport
                     (see Reports.md)
-    providers/      MetadataProvider, ProviderUnavailableError, ResponseCache
+    providers/      MetadataProvider, ProviderUnavailableError, ResponseCache,
+                    registry.py (PROVIDERS mapping, shared by main.py and gui/)
                     (see Providers.md); calibre/, openlibrary/,
                     googlebooks/, and internetarchive/ are real,
                     isbndb/ is a stub (needs a paid API key)
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)
     utils/          logger.py (not yet wired into the CLI)
-    gui/            MainWindow, BookTableModel, BookDetailDialog (see GUI.md) -
+    gui/            MainWindow, BookTableModel, BookDetailDialog,
+                    DashboardWidget, MetadataComparisonDialog (see GUI.md) -
                     v2.0.0-alpha MVP; PySide6, imported lazily
 tests/              pytest suite + tests/conftest.py fixtures
 tools/              dev-only scripts (schema dump, table inspector)

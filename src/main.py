@@ -18,9 +18,7 @@ from metadata.metadata_repair import MetadataRepair
 from metadata.metadata_score import MetadataScorer
 from metadata.series_order import find_series_order_issues
 from providers.base.provider import ProviderUnavailableError
-from providers.googlebooks.googlebooks_provider import GoogleBooksProvider
-from providers.internetarchive.internetarchive_provider import InternetArchiveProvider
-from providers.openlibrary.openlibrary_provider import OpenLibraryProvider
+from providers.registry import PROVIDERS
 from repair.author_merger import AuthorMerger
 from repair.backup import backup_database
 from repair.cover_applier import CoverApplier
@@ -44,12 +42,6 @@ FORMAT_WRITERS = {
 }
 
 REPORT_TYPES = ("health", "duplicates", "series", "statistics")
-
-PROVIDERS = {
-    "openlibrary": ("Open Library", OpenLibraryProvider),
-    "googlebooks": ("Google Books", GoogleBooksProvider),
-    "internetarchive": ("Internet Archive", InternetArchiveProvider),
-}
 
 
 def print_header(app):

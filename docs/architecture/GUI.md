@@ -1,12 +1,13 @@
-# GUI (v2.0.0-alpha + v2.0.0-alpha.2 shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha through v2.0.0-alpha.3 shipped, v2.0.0 planned)
 
 An MVP is built: `python run.py gui` opens a two-tab window - a
-searchable library table with a read-only book detail dialog, and a
-Dashboard tab showing library health at a glance. See `Roadmap.md`'s
-v2.0.0-alpha and v2.0.0-alpha.2 entries for the full list of what's
-done. This document covers the design decisions - both the ones
-already implemented and the ones still ahead for the full v2.0.0
-scope.
+searchable library table with a read-only book detail dialog (which
+itself opens a read-only Metadata Comparison dialog), and a Dashboard
+tab showing library health at a glance. See `Roadmap.md`'s
+v2.0.0-alpha, v2.0.0-alpha.2, and v2.0.0-alpha.3 entries for the full
+list of what's done. This document covers the design decisions - both
+the ones already implemented and the ones still ahead for the full
+v2.0.0 scope.
 
 ## Technology
 
@@ -19,10 +20,11 @@ missing rather than crashing with an `ImportError` traceback.
 
 ```
 gui/
-    main_window.py         MainWindow - "Library"/"Dashboard" tabs, search bar, status bar
-    book_table_model.py    BookTableModel - read-only QAbstractTableModel
-    book_detail_dialog.py  BookDetailDialog - double-click a row for full detail
-    dashboard_widget.py    DashboardWidget - library health at a glance
+    main_window.py                MainWindow - "Library"/"Dashboard" tabs, search bar, status bar
+    book_table_model.py           BookTableModel - read-only QAbstractTableModel
+    book_detail_dialog.py         BookDetailDialog - double-click a row for full detail
+    dashboard_widget.py           DashboardWidget - library health at a glance
+    metadata_comparison_dialog.py MetadataComparisonDialog - Calibre vs. a chosen provider
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -48,6 +50,20 @@ missing ISBN/cover/description counts, and ISBN/title duplicate group
 with a manual "Refresh" button (no auto-refresh - recomputing
 duplicate detection over the whole library isn't instant, so it's
 opt-in, not on every keystroke or tab switch).
+
+`MetadataComparisonDialog` (opened via a "Compare Metadata..." button
+on `BookDetailDialog`) is the GUI equivalent of `python run.py lookup`:
+Calibre's current metadata next to whatever candidates the chosen
+provider finds, with the same `--provider`/`--offline` options as a
+dropdown and checkbox. Same scope as `lookup` too - no write path.
+`format_comparison()` is the display-text formatting step, kept as a
+plain function separate from the dialog for the same testability
+reason as `compute_stats()`. The provider dropdown reads from
+`src/providers/registry.py`'s `PROVIDERS` mapping - the same registry
+`main.py`'s `lookup`/`covers` commands use, extracted out of `main.py`
+specifically so GUI code could import it without a circular
+dependency (`main.py` imports `gui.main_window`, so GUI modules can't
+import back from `main.py`).
 
 ## CLI: `python run.py gui`
 
@@ -87,11 +103,12 @@ Actions run.
 ## Not yet built (rest of the spec's v2.0.0 scope)
 
 - Grid/list library views (table only for now).
-- Metadata comparison - side-by-side `MetadataCandidate` objects from
-  multiple providers (see `Providers.md`) with a pick-a-value UI,
-  feeding into `metadata/metadata_repair.py`'s suggestion model. The
-  CLI's `lookup` command already does the comparison at the text
-  level; this is its GUI equivalent.
+- A pick-a-value UI on top of the Metadata Comparison dialog, feeding
+  into `metadata/metadata_repair.py`'s suggestion model - the dialog
+  itself is built, but it's read-only (text side-by-side), same as
+  `lookup`. Applying a chosen candidate's fields back into
+  `metadata.db` is still a real, unanswered policy question (per-field
+  approve? whole-candidate approve?), not just an implementation gap.
 - Repair wizard - a visual front-end for what `python run.py organize`/
   `repair --apply` already do at the CLI: preview a plan, let the user
   deselect individual books, then apply with the same backup-first

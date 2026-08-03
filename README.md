@@ -10,7 +10,7 @@ metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
 Archive provider + v2.0.0-alpha GUI MVP + v2.0.0-alpha.2 Dashboard tab
-shipped.
++ v2.0.0-alpha.3 Metadata Comparison dialog shipped.
 
 ## Requirements
 
@@ -131,7 +131,7 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha + v2.0.0-alpha.2 - see
+An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.3 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
 planned for the complete v2.0.0 scope) with two tabs:
 
@@ -139,14 +139,17 @@ planned for the complete v2.0.0 scope) with two tabs:
   read-only detail dialog on double-clicking a row. The search box
   reuses the exact same query syntax as `search` (it's the same
   `SearchController` underneath), so `author=King`, `isbn:missing`,
-  `rating>=4`, etc. all work identically.
+  `rating>=4`, etc. all work identically. The detail dialog has a
+  "Compare Metadata..." button opening a side-by-side comparison
+  against a chosen provider (Open Library/Google Books/Internet
+  Archive) - the GUI equivalent of `lookup`, same read-only scope.
 - **Dashboard** - library health at a glance (total books, unique
   authors/series, average health score, missing ISBN/cover/
   description, duplicate/series-order issue counts) - the same
   numbers `preview`/`analyze` compute, with a manual "Refresh" button.
 
-Nothing is written - both tabs are read-only, same as `lookup`. Needs
-`PySide6`, installed via `requirements.txt`.
+Nothing is written - every part of the GUI is read-only, same as
+`lookup`. Needs `PySide6`, installed via `requirements.txt`.
 
 ```bash
 python run.py gui

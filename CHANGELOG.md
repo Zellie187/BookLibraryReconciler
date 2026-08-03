@@ -4,6 +4,38 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.3 - Metadata Comparison dialog
+
+Third slice of the GUI MVP - the GUI equivalent of the CLI's `lookup`
+command, another item from v2.0.0-alpha's "not done" list.
+
+### Added
+- `src/gui/metadata_comparison_dialog.py` - `MetadataComparisonDialog`:
+  Calibre's current metadata next to candidates from a chosen provider
+  (Open Library/Google Books/Internet Archive dropdown, "Offline
+  (cache only)" checkbox - same options as `lookup --provider
+  --offline`). No write path, same scope as `lookup` itself.
+- A new "Compare Metadata..." button on `BookDetailDialog` opens it.
+- `src/providers/registry.py` - the `PROVIDERS` mapping extracted out
+  of `main.py`, so both the CLI and this new GUI dialog can import it
+  without a circular dependency. `main.py`'s `lookup`/`covers`
+  commands now import it from there instead - no behavior change.
+- `format_comparison()`: a plain function (no Qt, no network) doing
+  the display-text formatting, kept separate from the dialog for the
+  same testability reason as `compute_stats()`.
+- `tests/test_gui_metadata_comparison_dialog.py` (7 tests) against
+  `format_comparison()` directly.
+- Verified live against the real Open Library API: found 3 real
+  candidates for book #1 with correct ISBNs/publishers/cover URLs,
+  including one with a non-ASCII author name that rendered correctly
+  in the actual `QTextEdit` widget (confirmed via screenshot - a
+  console `print()` of the same text showed mojibake, which turned
+  out to be a terminal-encoding artifact, not a widget bug). Switching
+  to Google Books mid-session hit the same real rate limit documented
+  in v1.6.0's entry, handled cleanly with no crash.
+
+---
+
 ## Version 2.0.0-alpha.2 - Dashboard tab
 
 Second slice of the GUI MVP - library health at a glance, the first

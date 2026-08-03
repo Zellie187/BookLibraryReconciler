@@ -6,7 +6,9 @@ row in the library view. Mirrors main.py's print_book() field set for
 the CLI - same information, just in a dialog instead of stdout.
 """
 
-from PySide6.QtWidgets import QDialog, QFormLayout, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QFormLayout, QLabel, QPushButton, QVBoxLayout
+
+from gui.metadata_comparison_dialog import MetadataComparisonDialog
 
 
 class BookDetailDialog(QDialog):
@@ -14,6 +16,8 @@ class BookDetailDialog(QDialog):
     def __init__(self, book, parent=None):
 
         super().__init__(parent)
+
+        self.book = book
 
         self.setWindowTitle(f"#{book.id} - {book.title}")
         self.setMinimumWidth(420)
@@ -45,3 +49,14 @@ class BookDetailDialog(QDialog):
             layout.addWidget(QLabel("Identifiers:"))
             for key, value in sorted(book.identifiers.items()):
                 layout.addWidget(QLabel(f"  {key}: {value}"))
+
+        compare_button = QPushButton("Compare Metadata...")
+        compare_button.clicked.connect(self.open_metadata_comparison)
+        layout.addWidget(compare_button)
+
+    # ---------------------------------------------------------
+
+    def open_metadata_comparison(self):
+
+        dialog = MetadataComparisonDialog(self.book, parent=self)
+        dialog.exec()
