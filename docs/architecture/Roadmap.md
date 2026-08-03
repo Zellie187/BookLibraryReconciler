@@ -44,6 +44,7 @@ where explicit build-order choices swapped two entries:
 | v2.0.0-alpha | GUI MVP: searchable library table + book detail dialog (PySide6) |
 | v2.0.0-alpha.2 | GUI MVP: Dashboard tab (library health at a glance) |
 | v2.0.0-alpha.3 | GUI MVP: read-only Metadata Comparison dialog |
+| v2.0.0-alpha.4 | GUI MVP: Reports tab (the 4 CLI report presets, as text) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -427,18 +428,51 @@ v2.0.0-alpha's "not done" list.
       Switching to Google Books mid-session hit the same real rate
       limit documented in v1.6.0's entry, handled cleanly (no crash).
 
+Not done at this point: everything else on v2.0.0-alpha's original
+list except Dashboard and Metadata Comparison - grid/list views,
+repair wizard, report viewer, instant/saved/smart search, settings,
+notifications, GUI provider picker for `covers`.
+
+## v2.0.0-alpha.4 - Reports tab (done)
+
+See `GUI.md` for the full write-up. Fourth slice of the GUI MVP - the
+GUI equivalent of the CLI's `report` command (minus writing a file to
+disk), another item from v2.0.0-alpha's "not done" list.
+
+- [x] `src/gui/report_viewer_widget.py` - `ReportViewerWidget`: a new
+      "Reports" tab in `MainWindow` with a dropdown for the same four
+      presets as `python run.py report --type` (health/duplicates/
+      series/statistics) and a "Generate" button, rendering the
+      report as text.
+- [x] No new business logic - `generate_report_text()` reuses
+      `MetadataScorer`, `DuplicateDetector`, `AuthorDuplicateFinder`,
+      `find_series_order_issues`, and `LibraryStatistics` - the exact
+      same analyzers `preview`/`health`/`analyze`/`report` already
+      use, formatted as text instead of written to a CSV/JSON/Excel/
+      HTML/PDF file.
+- [x] `tests/test_gui_report_viewer_widget.py` (7 tests) against
+      `generate_report_text()` directly, using a small fake
+      `library_service` stub rather than the real database - no Qt or
+      network dependency.
+- [x] Verified live against the real 7,029-book sample library: all
+      four presets generated without error, and the numbers match
+      figures already verified elsewhere in this project (40% average
+      health score, 46 title duplicate groups, 52 duplicate author
+      groups, 290 series order issues) - plus a rendered screenshot of
+      the Statistics preset showing all three tabs together.
+
 Not done: everything else on v2.0.0-alpha's original list except
-Dashboard and Metadata Comparison - grid/list views, repair wizard,
-report viewer, instant/saved/smart search, settings, notifications,
-GUI provider picker for `covers`.
+Dashboard, Metadata Comparison, and Reports - grid/list views, repair
+wizard, instant/saved/smart search, settings, notifications, GUI
+provider picker for `covers`.
 
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
-collections), settings, notifications. v2.0.0-alpha,
-v2.0.0-alpha.2, and v2.0.0-alpha.3 (above) are the first three
-slices; this entry is done when the rest of that list ships.
+collections), settings, notifications. v2.0.0-alpha through
+v2.0.0-alpha.4 (above) are the first four slices; this entry is done
+when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers
 

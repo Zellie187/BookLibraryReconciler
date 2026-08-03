@@ -10,7 +10,8 @@ metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
 Archive provider + v2.0.0-alpha GUI MVP + v2.0.0-alpha.2 Dashboard tab
-+ v2.0.0-alpha.3 Metadata Comparison dialog shipped.
++ v2.0.0-alpha.3 Metadata Comparison dialog + v2.0.0-alpha.4 Reports
+tab shipped.
 
 ## Requirements
 
@@ -131,9 +132,9 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.3 - see
+An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.4 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
-planned for the complete v2.0.0 scope) with two tabs:
+planned for the complete v2.0.0 scope) with three tabs:
 
 - **Library** - a searchable table of the whole library, and a
   read-only detail dialog on double-clicking a row. The search box
@@ -147,6 +148,10 @@ planned for the complete v2.0.0 scope) with two tabs:
   authors/series, average health score, missing ISBN/cover/
   description, duplicate/series-order issue counts) - the same
   numbers `preview`/`analyze` compute, with a manual "Refresh" button.
+- **Reports** - the same 4 presets as `report --type` (health/
+  duplicates/series/statistics), rendered as text with a "Generate"
+  button - the GUI equivalent of `report`, minus writing a file to
+  disk (still CLI-only).
 
 Nothing is written - every part of the GUI is read-only, same as
 `lookup`. Needs `PySide6`, installed via `requirements.txt`.

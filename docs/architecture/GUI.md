@@ -1,13 +1,13 @@
-# GUI (v2.0.0-alpha through v2.0.0-alpha.3 shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha through v2.0.0-alpha.4 shipped, v2.0.0 planned)
 
-An MVP is built: `python run.py gui` opens a two-tab window - a
+An MVP is built: `python run.py gui` opens a three-tab window - a
 searchable library table with a read-only book detail dialog (which
-itself opens a read-only Metadata Comparison dialog), and a Dashboard
-tab showing library health at a glance. See `Roadmap.md`'s
-v2.0.0-alpha, v2.0.0-alpha.2, and v2.0.0-alpha.3 entries for the full
-list of what's done. This document covers the design decisions - both
-the ones already implemented and the ones still ahead for the full
-v2.0.0 scope.
+itself opens a read-only Metadata Comparison dialog), a Dashboard tab
+showing library health at a glance, and a Reports tab rendering the 4
+CLI report presets as text. See `Roadmap.md`'s v2.0.0-alpha through
+v2.0.0-alpha.4 entries for the full list of what's done. This document
+covers the design decisions - both the ones already implemented and
+the ones still ahead for the full v2.0.0 scope.
 
 ## Technology
 
@@ -20,11 +20,12 @@ missing rather than crashing with an `ImportError` traceback.
 
 ```
 gui/
-    main_window.py                MainWindow - "Library"/"Dashboard" tabs, search bar, status bar
+    main_window.py                MainWindow - "Library"/"Dashboard"/"Reports" tabs, search bar, status bar
     book_table_model.py           BookTableModel - read-only QAbstractTableModel
     book_detail_dialog.py         BookDetailDialog - double-click a row for full detail
     dashboard_widget.py           DashboardWidget - library health at a glance
     metadata_comparison_dialog.py MetadataComparisonDialog - Calibre vs. a chosen provider
+    report_viewer_widget.py       ReportViewerWidget - the 4 CLI report presets, as text
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -64,6 +65,17 @@ reason as `compute_stats()`. The provider dropdown reads from
 specifically so GUI code could import it without a circular
 dependency (`main.py` imports `gui.main_window`, so GUI modules can't
 import back from `main.py`).
+
+`ReportViewerWidget` is the "Reports" tab - a dropdown for the same
+four presets as `python run.py report --type` and a "Generate" button.
+`generate_report_text()` is, once again, a plain function with no Qt
+dependency, this time reusing `MetadataScorer`, `DuplicateDetector`,
+`AuthorDuplicateFinder`, `find_series_order_issues`, and
+`LibraryStatistics` - the exact same analyzers `preview`/`health`/
+`analyze`/`report` already use. Unlike the CLI's `report` command,
+nothing is written to disk here - the point is an on-screen view, not
+a file export (that's still what `python run.py report --format
+excel/pdf/...` is for).
 
 ## CLI: `python run.py gui`
 
@@ -113,8 +125,10 @@ Actions run.
   `repair --apply` already do at the CLI: preview a plan, let the user
   deselect individual books, then apply with the same backup-first
   guarantee.
-- Report viewer - render whatever `reports/` can produce (CSV/JSON/
-  HTML/Excel/PDF - see `Reports.md`).
+- Exporting the Reports tab's output to CSV/Excel/HTML/PDF from the
+  GUI itself - the tab shows the same numbers on screen, but saving to
+  disk in a specific format is still CLI-only (`python run.py report
+  --format ...`).
 - Cover Download Engine front-end, and a `--provider` picker in the
   GUI matching the CLI's `openlibrary`/`googlebooks`/`internetarchive`
   choice.

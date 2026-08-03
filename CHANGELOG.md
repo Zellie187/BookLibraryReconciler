@@ -4,6 +4,34 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.4 - Reports tab
+
+Fourth slice of the GUI MVP - the GUI equivalent of the CLI's `report`
+command (minus writing a file to disk), another item from
+v2.0.0-alpha's "not done" list.
+
+### Added
+- `src/gui/report_viewer_widget.py` - `ReportViewerWidget`: a new
+  "Reports" tab in `MainWindow` with a dropdown for the same four
+  presets as `python run.py report --type` (health/duplicates/series/
+  statistics) and a "Generate" button, rendering the report as text.
+- `generate_report_text()`: a plain function (no Qt dependency)
+  reusing `MetadataScorer`, `DuplicateDetector`,
+  `AuthorDuplicateFinder`, `find_series_order_issues`, and
+  `LibraryStatistics` - the exact same analyzers `preview`/`health`/
+  `analyze`/`report` already use. No new business logic.
+- `tests/test_gui_report_viewer_widget.py` (7 tests) against
+  `generate_report_text()` directly, using a small fake
+  `library_service` stub - no Qt or network dependency.
+- Verified live against the real 7,029-book sample library: all four
+  presets generated without error, and the numbers match figures
+  already verified elsewhere in this project (40% average health
+  score, 46 title duplicate groups, 52 duplicate author groups, 290
+  series order issues), plus a rendered screenshot of the Statistics
+  preset with all three tabs visible.
+
+---
+
 ## Version 2.0.0-alpha.3 - Metadata Comparison dialog
 
 Third slice of the GUI MVP - the GUI equivalent of the CLI's `lookup`
