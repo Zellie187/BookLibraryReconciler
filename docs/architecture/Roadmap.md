@@ -45,6 +45,7 @@ where explicit build-order choices swapped two entries:
 | v2.0.0-alpha.2 | GUI MVP: Dashboard tab (library health at a glance) |
 | v2.0.0-alpha.3 | GUI MVP: read-only Metadata Comparison dialog |
 | v2.0.0-alpha.4 | GUI MVP: Reports tab (the 4 CLI report presets, as text) |
+| v2.0.0-alpha.5 | GUI MVP: Settings tab (edits Settings/config.json) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -466,20 +467,58 @@ Dashboard, Metadata Comparison, and Reports - grid/list views, repair
 wizard, instant/saved/smart search, settings, notifications, GUI
 provider picker for `covers`.
 
+## v2.0.0-alpha.5 - Settings tab (done)
+
+See `GUI.md` for the full write-up. Fifth slice of the GUI MVP - reads
+and writes `Settings/config.json` (`library_path`/`metadata_db`) from
+the GUI, instead of requiring the hand-editing README.md currently
+documents.
+
+- [x] `src/gui/settings_widget.py` - `SettingsWidget`: a new
+      "Settings" tab with a folder picker for the Calibre library and
+      an optional file picker for `metadata.db`, a "Save" button, and
+      a note explaining the change takes effect on next launch (not
+      live - `config.settings.LIBRARY_ROOT`/`METADATA_DB` are computed
+      once at import time and threaded through `Application` at
+      startup, so there's no live-reload path to build here).
+- [x] Validates the library folder exists before saving; warns instead
+      of silently writing a broken path.
+- [x] `save_settings()`: a plain function (no Qt dependency) writing
+      exactly the two keys `config.settings.load_settings()` already
+      reads - `tests/test_gui_settings_widget.py` (4 tests), each
+      monkeypatching `SETTINGS_FILE` to a `tmp_path` so the real
+      project's `Settings/config.json` is never touched by the test
+      suite (confirmed via `git status` after running).
+- [x] Verified live: the widget correctly loaded the real (blank)
+      values from the project's actual `Settings/config.json` at
+      startup, the nonexistent-folder validation guard was confirmed
+      directly, and a screenshot shows all four tabs together. The
+      real settings file was confirmed untouched throughout (this
+      smoke test only reads and validates - it never calls
+      `save_settings()` against the real file, to avoid any risk of
+      leaving the repo's tracked default `config.json` modified).
+
+Not done: everything else on v2.0.0-alpha's original list except
+Dashboard, Metadata Comparison, Reports, and Settings - grid/list
+views, repair wizard, instant/saved/smart search, notifications, GUI
+provider picker for `covers`.
+
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
 collections), settings, notifications. v2.0.0-alpha through
-v2.0.0-alpha.4 (above) are the first four slices; this entry is done
+v2.0.0-alpha.5 (above) are the first five slices; this entry is done
 when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers
 
-ISBNdb, once the v2.0.0 GUI ships (Google Books and Internet Archive
-already shipped early, as v1.6.0/v1.7.0 - see the reordering note at
-the top of this doc). Needs a paid API key to implement and verify for
-real, unlike Google Books/Internet Archive/Open Library.
+ISBNdb - explicitly deprioritized for now, at the user's request.
+Needs a paid API key this project doesn't have to implement and verify
+for real, unlike Google Books/Internet Archive/Open Library, which is
+why it's the one piece of the original spec still not attempted while
+everything else (including the GUI, worked ahead of schedule) has
+moved forward. Revisit if/when an API key becomes available.
 
 ## v3.0.0 - Plugin SDK and provider marketplace
 

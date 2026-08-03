@@ -4,6 +4,30 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.5 - Settings tab
+
+Fifth slice of the GUI MVP - reads and writes `Settings/config.json`
+from the GUI instead of requiring the hand-editing README.md currently
+documents.
+
+### Added
+- `src/gui/settings_widget.py` - `SettingsWidget`: a new "Settings" tab
+  with a folder picker for the Calibre library, an optional file
+  picker for `metadata.db`, a "Save" button, and a note that changes
+  take effect on the next launch (not live).
+- Validates the library folder exists before saving.
+- `save_settings()`: a plain function writing exactly the two keys
+  `config.settings.load_settings()` already reads.
+- `tests/test_gui_settings_widget.py` (4 tests), each monkeypatching
+  `SETTINGS_FILE` to a `tmp_path` so the real project's
+  `Settings/config.json` is never touched by the test suite.
+- Verified live: loaded the real (blank) values from the project's
+  actual settings file at startup, confirmed the validation guard
+  directly, and screenshotted all four tabs together - the real
+  settings file was confirmed untouched throughout.
+
+---
+
 ## Version 2.0.0-alpha.4 - Reports tab
 
 Fourth slice of the GUI MVP - the GUI equivalent of the CLI's `report`

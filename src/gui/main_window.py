@@ -4,16 +4,18 @@ Main Window
 MVP for the v2.0.0 desktop application: a "Library" tab (searchable
 table of books, opening a read-only detail dialog on double-click - it
 in turn opens a Metadata Comparison dialog), a "Dashboard" tab (library
-health at a glance), and a "Reports" tab (the 4 CLI report presets,
-rendered as text). The search box reuses the exact same
-SearchController/SearchService the CLI's `search` command uses - the
-query syntax typed into the search box is identical to
-`python run.py search "..."` (see Search.md), so there is only one
-place that understands search terms.
+health at a glance), a "Reports" tab (the 4 CLI report presets,
+rendered as text), and a "Settings" tab (edits Settings/config.json).
+The search box reuses the exact same SearchController/SearchService
+the CLI's `search` command uses - the query syntax typed into the
+search box is identical to `python run.py search "..."` (see
+Search.md), so there is only one place that understands search terms.
 
-Deliberately minimal: no repair-wizard/settings/notifications yet (see
+Deliberately minimal: no repair-wizard/notifications yet (see
 docs/architecture/GUI.md and Roadmap.md for what's still planned).
-Read-only - nothing here writes to metadata.db.
+Read-only with respect to metadata.db - Settings writes to
+Settings/config.json, a separate file the CLI already documents
+hand-editing directly (see README.md).
 """
 
 from PySide6.QtWidgets import (
@@ -36,6 +38,7 @@ from gui.book_detail_dialog import BookDetailDialog
 from gui.book_table_model import BookTableModel
 from gui.dashboard_widget import DashboardWidget
 from gui.report_viewer_widget import ReportViewerWidget
+from gui.settings_widget import SettingsWidget
 
 
 class MainWindow(QMainWindow):
@@ -81,11 +84,13 @@ class MainWindow(QMainWindow):
 
         self.dashboard_widget = DashboardWidget(library_service)
         self.report_viewer_widget = ReportViewerWidget(library_service)
+        self.settings_widget = SettingsWidget()
 
         tabs = QTabWidget()
         tabs.addTab(library_tab, "Library")
         tabs.addTab(self.dashboard_widget, "Dashboard")
         tabs.addTab(self.report_viewer_widget, "Reports")
+        tabs.addTab(self.settings_widget, "Settings")
 
         self.setCentralWidget(tabs)
 

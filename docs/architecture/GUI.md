@@ -1,11 +1,12 @@
-# GUI (v2.0.0-alpha through v2.0.0-alpha.4 shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha through v2.0.0-alpha.5 shipped, v2.0.0 planned)
 
-An MVP is built: `python run.py gui` opens a three-tab window - a
+An MVP is built: `python run.py gui` opens a four-tab window - a
 searchable library table with a read-only book detail dialog (which
 itself opens a read-only Metadata Comparison dialog), a Dashboard tab
-showing library health at a glance, and a Reports tab rendering the 4
-CLI report presets as text. See `Roadmap.md`'s v2.0.0-alpha through
-v2.0.0-alpha.4 entries for the full list of what's done. This document
+showing library health at a glance, a Reports tab rendering the 4 CLI
+report presets as text, and a Settings tab editing
+`Settings/config.json`. See `Roadmap.md`'s v2.0.0-alpha through
+v2.0.0-alpha.5 entries for the full list of what's done. This document
 covers the design decisions - both the ones already implemented and
 the ones still ahead for the full v2.0.0 scope.
 
@@ -20,12 +21,13 @@ missing rather than crashing with an `ImportError` traceback.
 
 ```
 gui/
-    main_window.py                MainWindow - "Library"/"Dashboard"/"Reports" tabs, search bar, status bar
+    main_window.py                MainWindow - "Library"/"Dashboard"/"Reports"/"Settings" tabs, search bar, status bar
     book_table_model.py           BookTableModel - read-only QAbstractTableModel
     book_detail_dialog.py         BookDetailDialog - double-click a row for full detail
     dashboard_widget.py           DashboardWidget - library health at a glance
     metadata_comparison_dialog.py MetadataComparisonDialog - Calibre vs. a chosen provider
     report_viewer_widget.py       ReportViewerWidget - the 4 CLI report presets, as text
+    settings_widget.py            SettingsWidget - edits Settings/config.json
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -76,6 +78,19 @@ dependency, this time reusing `MetadataScorer`, `DuplicateDetector`,
 nothing is written to disk here - the point is an on-screen view, not
 a file export (that's still what `python run.py report --format
 excel/pdf/...` is for).
+
+`SettingsWidget` is the "Settings" tab: folder/file pickers for
+`library_path`/`metadata_db`, backed by `save_settings()` - another
+plain function, this one writing exactly the two keys
+`config.settings.load_settings()` already reads, so the file format
+stays whatever the CLI's existing hand-edit instructions describe (see
+README.md). Not live - `config.settings.LIBRARY_ROOT`/`METADATA_DB`
+are computed once at import time and threaded through `Application` at
+`python run.py gui` startup, so a saved change only takes effect on
+the *next* launch; the widget says so rather than pretending otherwise.
+The library-folder field is validated (must exist) before saving; the
+`metadata.db` field is optional and unvalidated (Calibre's own default
+location, `<library_path>/metadata.db`, is used when it's left blank).
 
 ## CLI: `python run.py gui`
 
@@ -134,7 +149,6 @@ Actions run.
   choice.
 - Instant search, saved searches, search history, smart collections -
   the current search box is a manual one-shot query, same as the CLI.
-- Settings screen - `Settings/config.json` still needs hand-editing.
 - Notifications.
 
 ## `resources/`

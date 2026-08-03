@@ -4,7 +4,7 @@ Application Constants
 
 APP_NAME = "Book Library Reconciler"
 
-VERSION = "2.0.0-alpha.4"
+VERSION = "2.0.0-alpha.5"
 
 # --------------------------------------------------
 # Display

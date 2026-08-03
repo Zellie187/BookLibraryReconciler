@@ -9,9 +9,9 @@ Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
-Archive provider + v2.0.0-alpha GUI MVP + v2.0.0-alpha.2 Dashboard tab
-+ v2.0.0-alpha.3 Metadata Comparison dialog + v2.0.0-alpha.4 Reports
-tab shipped.
+Archive provider + v2.0.0-alpha through v2.0.0-alpha.5 GUI MVP
+(library/dashboard/reports/settings tabs, metadata comparison) shipped.
+See `docs/architecture/Roadmap.md` for what each GUI slice added.
 
 ## Requirements
 
@@ -132,9 +132,9 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.4 - see
+An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.5 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
-planned for the complete v2.0.0 scope) with three tabs:
+planned for the complete v2.0.0 scope) with four tabs:
 
 - **Library** - a searchable table of the whole library, and a
   read-only detail dialog on double-clicking a row. The search box
@@ -152,9 +152,15 @@ planned for the complete v2.0.0 scope) with three tabs:
   duplicates/series/statistics), rendered as text with a "Generate"
   button - the GUI equivalent of `report`, minus writing a file to
   disk (still CLI-only).
+- **Settings** - edits `Settings/config.json` (`library_path`/
+  `metadata_db`) instead of hand-editing the file; takes effect the
+  next time you launch the app, not live.
 
-Nothing is written - every part of the GUI is read-only, same as
-`lookup`. Needs `PySide6`, installed via `requirements.txt`.
+Every part of the GUI is read-only with respect to `metadata.db`, same
+as `lookup` - Settings is the one tab that writes anything, and it
+only ever writes to `Settings/config.json`, a separate file the CLI
+setup instructions above already have you edit by hand. Needs
+`PySide6`, installed via `requirements.txt`.
 
 ```bash
 python run.py gui
