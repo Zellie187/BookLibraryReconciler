@@ -9,7 +9,7 @@ Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
-Archive provider shipped.
+Archive provider + v2.0.0-alpha GUI MVP shipped.
 
 ## Requirements
 
@@ -68,6 +68,7 @@ python run.py lookup 1              # compare a book's Calibre metadata against 
 python run.py lookup 1 --provider googlebooks   # ... or against Google Books instead
 python run.py covers 1              # find + validate cover candidates for a book (read-only)
 python run.py covers 1 --apply --best   # back up metadata.db, then save the best candidate as the cover
+python run.py gui                   # launch the desktop app (searchable library table + book details)
 ```
 
 Add `--csv` to `health`, `analyze`, `repair`, `organize`, or `search`
@@ -125,6 +126,22 @@ python run.py covers 1 --offline --user-folder "C:/my-covers"
 python run.py covers 1 --provider googlebooks
 python run.py covers 1 --apply --best
 python run.py covers 1 --apply --candidate 2
+```
+
+### How `gui` works
+
+An MVP desktop application (v2.0.0-alpha - see
+`docs/architecture/GUI.md` for the full write-up and what's still
+planned for the complete v2.0.0 scope): a searchable table of the
+whole library, and a read-only detail dialog on double-clicking a row.
+The search box reuses the exact same query syntax as `search` (it's
+the same `SearchController` underneath), so `author=King`,
+`isbn:missing`, `rating>=4`, etc. all work identically. Nothing is
+written - this is a read-only view, same as `lookup`. Needs `PySide6`,
+installed via `requirements.txt`.
+
+```bash
+python run.py gui
 ```
 
 ### How `report` works
@@ -229,6 +246,7 @@ Repair Engine       (src/repair)        -- reorganize/repair plan + apply + back
 Reports             (src/reports)       -- CSV/JSON/HTML/Excel/PDF behind a common interface
 Providers           (src/providers)     -- pluggable metadata sources (Calibre, Open Library, Google Books, Internet Archive work; ISBNdb is a stub)
 Configuration       (src/config)        -- paths, Settings/config.json, constants
+GUI                 (src/gui)           -- desktop app MVP: library table + book detail dialog (PySide6)
 ```
 
 Full write-up, including why each layer exists and how to extend it,
@@ -248,7 +266,11 @@ is in `docs/architecture/` - start with `Architecture.md` and
   question, not just an implementation gap — see `docs/architecture/Roadmap.md`).
 - EPUB-embedded metadata reading (`src/readers/epub_reader.py`) — not
   needed for the Calibre-first workflow above.
-- GUI, duplicate *file* detection (duplicate *books* by ISBN/title and
+- The full v2.0.0 GUI scope — `python run.py gui` (v2.0.0-alpha) is a
+  library table + book detail dialog only; dashboard, metadata
+  comparison, repair wizard, report viewer, settings, and
+  notifications are still CLI-only. See `docs/architecture/GUI.md`.
+- Duplicate *file* detection (duplicate *books* by ISBN/title and
   duplicate *authors* are both covered), report scheduling — see
   `docs/architecture/Roadmap.md`.
 

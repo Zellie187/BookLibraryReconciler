@@ -9,9 +9,9 @@ pip install -r requirements.txt
 Requires Python 3.14+. `requirements.txt` has the dev tools (`pytest`,
 `ruff`, `black`, `mypy`) plus optional-but-included dependencies needed
 only by specific commands: `openpyxl`/`fpdf2` for `report --format
-excel`/`pdf` (see `Reports.md`), and `Pillow` for `covers` (image
-validation/resize, see `Providers.md`) - everything else in the app is
-stdlib-only.
+excel`/`pdf` (see `Reports.md`), `Pillow` for `covers` (image
+validation/resize, see `Providers.md`), and `PySide6` for `gui` (see
+`GUI.md`) - everything else in the app is stdlib-only.
 
 ## Running the CLI
 
@@ -96,6 +96,8 @@ src/
                     isbndb/ is a stub (needs a paid API key)
     readers/        CSVReader (legacy), epub_reader.py (stub, not used by the Calibre workflow)
     utils/          logger.py (not yet wired into the CLI)
+    gui/            MainWindow, BookTableModel, BookDetailDialog (see GUI.md) -
+                    v2.0.0-alpha MVP; PySide6, imported lazily
 tests/              pytest suite + tests/conftest.py fixtures
 tools/              dev-only scripts (schema dump, table inspector)
 docs/architecture/  this documentation

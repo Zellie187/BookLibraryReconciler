@@ -12,3 +12,6 @@ fpdf2>=2.7
 # Cover Download Engine - cover image validation/resizing; imported lazily,
 # so the rest of the app runs without it
 Pillow>=10.0
+
+# GUI (`python run.py gui`) - imported lazily, so the CLI runs without it
+PySide6>=6.5

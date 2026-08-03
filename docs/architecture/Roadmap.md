@@ -20,6 +20,15 @@ where explicit build-order choices swapped two entries:
   preserving "version numbers always increase in actual ship order."
   v2.0.0/v2.1.0 stay reserved for the GUI and whatever's left of
   v2.1.0's original scope (ISBNdb) whenever those ship.
+- The GUI's first slice is deliberately an MVP - a working PySide6
+  window (searchable library table + read-only book detail dialog)
+  proving the wiring against the existing service layer - rather than
+  the full spec'd feature set (dashboard, grid/list views, metadata
+  comparison, repair wizard, report viewer, instant/advanced/smart-
+  collection search, settings, notifications) in one pass. Following
+  the same convention as **v1.0.0-alpha** for the CLI foundation,
+  this ships as **v2.0.0-alpha** - the full feature set stays "v2.0.0"
+  until it's actually all there.
 
 | Version | Features |
 |---|---|
@@ -32,7 +41,8 @@ where explicit build-order choices swapped two entries:
 | v1.5.1 | Cover Download Engine, completing v1.5.0's originally-deferred scope |
 | v1.6.0 | Google Books provider - part of spec's v2.1.0, built ahead of the GUI |
 | v1.7.0 | Internet Archive provider - part of spec's v2.1.0, built ahead of the GUI |
-| v2.0.0 | PySide6 desktop application |
+| v2.0.0-alpha | GUI MVP: searchable library table + book detail dialog (PySide6) |
+| v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
 
@@ -311,11 +321,60 @@ Not done: ISBNdb provider remains a stub (needs a paid API key this
 project doesn't have to verify against - see `Roadmap.md`'s v2.1.0
 entry).
 
-## v2.0.0 - PySide6 desktop application
+## v2.0.0-alpha - GUI MVP (done)
+
+See `GUI.md` for the full write-up. Proves the PySide6 wiring against
+the existing service layer with a deliberately small first slice -
+the "Minimal MVP first" option chosen over building the full v2.0.0
+feature set in one pass.
+
+- [x] `src/gui/` package: `MainWindow` (search bar + table view +
+      status bar), `BookTableModel` (read-only `QAbstractTableModel`),
+      `BookDetailDialog` (double-click a row to see full book details)
+- [x] Search box reuses the exact same `SearchController`/
+      `SearchService` the CLI's `search` command already uses - same
+      query syntax (`author=King`, `isbn:missing`, etc.), one place
+      that understands search terms, not two
+- [x] CLI: `python run.py gui` - lazily imports PySide6 (mirrors the
+      Pillow/openpyxl/fpdf2 pattern), so the rest of the CLI still
+      runs without it installed
+- [x] Read-only, matching `GUI.md`'s carried-over design constraint -
+      nothing in this MVP writes to `metadata.db`
+- [x] `tests/test_gui_book_table_model.py` (8 tests) exercising the
+      table model's data/header/reset logic directly; a session-scoped
+      `qt_app` fixture in `conftest.py` shares one `QApplication`
+      instance across GUI tests (constructing more than one raises).
+      CI's `QT_QPA_PLATFORM=offscreen` is set in `conftest.py` itself
+      (before any `QApplication` is constructed) so tests don't need a
+      real display
+- [x] Verified live: a headless smoke test (loading all 7,029 books,
+      running a real search, opening the detail dialog, and confirming
+      an invalid search field still raises `ValueError` the same way
+      the CLI does) plus actual rendered screenshots of the running
+      window and detail dialog on this machine's native Qt platform
+      (not just the offscreen one) - both render correctly
+
+Not done - the rest of the spec's v2.0.0 scope:
+
+- [ ] Dashboard (library health at a glance)
+- [ ] Grid/list library views (table only for now)
+- [ ] Metadata comparison UI (`lookup`'s CLI output has no GUI
+      equivalent yet)
+- [ ] Repair wizard (visual front-end for `organize`/`repair --apply`)
+- [ ] Report viewer
+- [ ] Instant search, saved searches, search history, smart
+      collections (search box is a manual one-shot query, same as CLI)
+- [ ] Settings screen (still hand-edit `Settings/config.json`)
+- [ ] Notifications
+- [ ] Cover Download Engine / provider `--provider` selection have no
+      GUI front-end yet - CLI-only
+
+## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
-collections), settings, notifications.
+collections), settings, notifications. v2.0.0-alpha (above) is the
+first slice; this entry is done when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers
 

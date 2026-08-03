@@ -4,6 +4,54 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha - GUI MVP
+
+First slice of the desktop application, chosen deliberately as a
+minimal MVP over building the full spec'd v2.0.0 feature set in one
+pass - proves the PySide6 wiring against the existing service layer.
+
+### Added
+- `src/gui/main_window.py` - `MainWindow`: search bar, `QTableView`
+  library listing, status bar. Double-clicking a row opens a book
+  detail dialog.
+- `src/gui/book_table_model.py` - `BookTableModel`: read-only
+  `QAbstractTableModel` (ID/Title/Author/Series/Rating/ISBN/Cover
+  columns). No write path - the GUI inherits the CLI's preview-first
+  rule (see `GUI.md`).
+- `src/gui/book_detail_dialog.py` - `BookDetailDialog`: full book
+  detail view, mirroring `main.py`'s CLI `print_book()` field set.
+- The search box reuses `SearchController`/`SearchService` directly -
+  identical query syntax to `python run.py search "..."`, one place
+  that understands search terms.
+- CLI: `python run.py gui` - lazily imports PySide6 (same pattern as
+  Pillow/openpyxl/fpdf2), so the rest of the CLI works without it
+  installed; prints a friendly install message instead of crashing if
+  it's missing.
+- `requirements.txt`: added `PySide6>=6.5`.
+- `tests/test_gui_book_table_model.py` (8 tests) plus a session-scoped
+  `qt_app` fixture in `conftest.py` (one shared `QApplication` - a
+  second one raises) and `QT_QPA_PLATFORM=offscreen` set before any
+  `QApplication` is constructed, so the suite runs without a display.
+- `.github/workflows/python.yml`: installs `libegl1`/`libgl1`/
+  `libxkbcommon0`/`fontconfig`/`fonts-dejavu-core` via `apt` before
+  the Python dependencies, since PySide6's wheels need a few Linux
+  system libraries even for the offscreen Qt platform - not verified
+  against a real GitHub Actions run.
+- Verified live: a headless smoke test (load all 7,029 books, run a
+  real search, open the detail dialog, confirm a bad search field
+  raises the same `ValueError` the CLI does) plus actual rendered
+  screenshots of the running window and detail dialog.
+
+### Known limitation
+- Under `QT_QPA_PLATFORM=offscreen` on this project's Windows dev
+  machine, rendered text came out as blank glyph boxes (no font found)
+  even though the window's structure (columns, layout, row/field
+  counts) was correct - confirmed as a font-availability quirk of the
+  offscreen platform specifically, not a bug, by re-rendering on the
+  native `windows` Qt platform, where every label rendered correctly.
+
+---
+
 ## Version 1.7.0 - Internet Archive provider
 
 The last piece of the spec's v2.1.0 "additional providers" scope,

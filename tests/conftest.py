@@ -6,9 +6,14 @@ Builds a small SQLite database matching Calibre's metadata.db schema
 depend on a real Calibre library.
 """
 
+import os
 import sqlite3
 
 import pytest
+
+# Must be set before PySide6 constructs a QApplication - lets GUI tests
+# run on a CI box with no real display attached.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from core.calibre_functions import calculate_title_sort
 from core.database import DatabaseManager
@@ -237,3 +242,15 @@ def database_manager(seeded_db):
     yield manager
 
     manager.close()
+
+
+@pytest.fixture(scope="session")
+def qt_app():
+    """
+    QApplication is a singleton - every GUI test that needs one shares
+    this instance rather than each constructing its own (which raises).
+    """
+
+    from PySide6.QtWidgets import QApplication
+
+    return QApplication.instance() or QApplication([])

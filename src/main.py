@@ -235,6 +235,33 @@ def run_search(args, app):
         print(f"\nFull results written to:\n{output_path}")
 
 
+def run_gui(args, app):
+    """
+    Launch the desktop application (MVP: searchable library view +
+    read-only book detail dialog). Needs the optional PySide6
+    dependency, lazy-imported here so the rest of the CLI works
+    without it installed.
+    """
+
+    try:
+        from PySide6.QtWidgets import QApplication
+    except ImportError:
+        print(
+            "The GUI needs the optional 'PySide6' dependency - "
+            "install it with: pip install PySide6"
+        )
+        return
+
+    from gui.main_window import MainWindow
+
+    qt_app = QApplication.instance() or QApplication(sys.argv)
+
+    window = MainWindow(app.library_service, app.search_service)
+    window.show()
+
+    sys.exit(qt_app.exec())
+
+
 def run_repair(args, app):
 
     books = app.library_service.get_all_books()
@@ -679,6 +706,11 @@ def build_parser():
         "--csv", action="store_true", help="Write the full results to output/search_results.csv"
     )
     search_parser.set_defaults(func=run_search)
+
+    gui_parser = subparsers.add_parser(
+        "gui", help="Launch the desktop application (needs the optional PySide6 dependency)"
+    )
+    gui_parser.set_defaults(func=run_gui)
 
     return parser
 
