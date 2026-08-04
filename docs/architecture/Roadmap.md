@@ -47,6 +47,7 @@ where explicit build-order choices swapped two entries:
 | v2.0.0-alpha.4 | GUI MVP: Reports tab (the 4 CLI report presets, as text) |
 | v2.0.0-alpha.5 | GUI MVP: Settings tab (edits Settings/config.json) |
 | v2.0.0-alpha.6 | GUI MVP: Cover Finder dialog (find + apply a cover) |
+| v2.0.0-alpha.7 | GUI MVP: Organize Wizard tab (repair wizard, part 1) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -554,12 +555,53 @@ Dashboard, Metadata Comparison, Reports, Settings, and Cover Finder -
 grid/list views, repair wizard, instant/saved/smart search,
 notifications.
 
+## v2.0.0-alpha.7 - Organize Wizard tab, repair wizard part 1 (done)
+
+See `GUI.md` for the full write-up. Seventh slice of the GUI MVP - the
+first half of the "repair wizard" GUI.md always described, and the
+second GUI slice that writes anything. Unlike the still-unbuilt
+Metadata Comparison *apply* path, this isn't blocked by an unanswered
+policy question: the CLI's `organize --apply` semantics (backup-first,
+one book failing doesn't stop the rest) were already decided and
+tested. Per-item checkbox selection here is strictly *safer* than the
+CLI's all-or-nothing apply, not a new policy - a genuine UI
+improvement over the CLI, not a design risk.
+
+- [x] `src/gui/organize_wizard_widget.py` - `OrganizeWizardWidget`: a
+      new "Organize" tab previewing `FileOrganizer.plans_with_changes()`
+      as a checkable list (checked by default), "Select All"/"Select
+      None" convenience buttons, and "Apply Selected" - reuses
+      `OrganizeApplier`/`backup_database` exactly as the CLI does, just
+      scoped to only the checked plans instead of all of them.
+- [x] `format_plan_line()`/`summarize_apply_results()`: plain functions
+      kept separate from the widget for testability -
+      `tests/test_gui_organize_wizard_widget.py` (6 tests).
+- [x] Verified live end-to-end against a throwaway copy of the sample
+      database *and* real files on disk (not just database state, as
+      the CoverFinder/MetadataComparison smoke tests were): created a
+      real book folder with 3 correctly-named format files (PDF/EPUB/
+      MOBI matching the DB's actual format records), previewed the
+      full 7,029-book reorganize plan, narrowed the checked selection
+      down to a single book via the widget's own `_checked_plans()`,
+      applied it through the widget's actual `apply_selected()` code
+      path (`QMessageBox` patched to no-ops), and confirmed: the old
+      folder was gone, the new `Author/Title` folder existed with all
+      3 formats correctly renamed, and the path change was persisted
+      to the database via a fresh read. Confirmed the real committed
+      sample library was untouched throughout (`git status` clean).
+
+Not done: the second half of the repair wizard (title-repair
+suggestions + duplicate-author merges - see v2.0.0-alpha.8), plus
+everything else on v2.0.0-alpha's original list except Dashboard,
+Metadata Comparison, Reports, Settings, Cover Finder, and Organize -
+grid/list views, instant/saved/smart search, notifications.
+
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
 collections), settings, notifications. v2.0.0-alpha through
-v2.0.0-alpha.6 (above) are the first six slices; this entry is done
+v2.0.0-alpha.7 (above) are the first seven slices; this entry is done
 when the rest of that list ships.
 
 ## v2.1.0 - Remaining additional providers

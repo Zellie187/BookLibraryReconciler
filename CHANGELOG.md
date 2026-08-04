@@ -4,6 +4,37 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.7 - Organize Wizard tab
+
+Seventh slice of the GUI MVP - the first half of the repair wizard
+`GUI.md` always planned, and the second GUI slice that writes
+anything. Not blocked by an unanswered policy question the way
+applying provider *metadata* is: the CLI's `organize --apply`
+semantics (backup-first, one book failing doesn't stop the rest) were
+already decided and tested - per-item checkbox selection here is
+strictly *safer* than the CLI's all-or-nothing apply.
+
+### Added
+- `src/gui/organize_wizard_widget.py` - `OrganizeWizardWidget`: a new
+  "Organize" tab previewing `FileOrganizer.plans_with_changes()` as a
+  checkable list (checked by default), "Select All"/"Select None"
+  buttons, and "Apply Selected" - reuses `OrganizeApplier`/
+  `backup_database` exactly as the CLI does, scoped to only the
+  checked plans.
+- `format_plan_line()`/`summarize_apply_results()`: plain functions
+  kept separate from the widget for testability - `tests/
+  test_gui_organize_wizard_widget.py` (6 tests).
+- Verified live end-to-end against a throwaway copy of the sample
+  database *and* real files on disk: created a real book folder with
+  3 correctly-named format files, previewed the full 7,029-book
+  reorganize plan, narrowed the selection to a single book, applied it
+  through the widget's actual code path, and confirmed the folder
+  move, format renames, and database path update all happened
+  correctly via a fresh database read. Confirmed the real committed
+  sample library was untouched throughout.
+
+---
+
 ## Version 2.0.0-alpha.6 - Cover Finder dialog
 
 Sixth slice of the GUI MVP - the GUI equivalent of the CLI's `covers`
