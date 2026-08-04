@@ -48,6 +48,7 @@ where explicit build-order choices swapped two entries:
 | v2.0.0-alpha.5 | GUI MVP: Settings tab (edits Settings/config.json) |
 | v2.0.0-alpha.6 | GUI MVP: Cover Finder dialog (find + apply a cover) |
 | v2.0.0-alpha.7 | GUI MVP: Organize Wizard tab (repair wizard, part 1) |
+| v2.0.0-alpha.8 | GUI MVP: Repair Wizard tab (repair wizard, part 2) |
 | v2.0.0 | Full PySide6 desktop application (dashboard, all views, wizards) |
 | v2.1.0 | Remaining additional providers (ISBNdb) |
 | v3.0.0 | Plugin SDK and provider marketplace |
@@ -590,19 +591,68 @@ improvement over the CLI, not a design risk.
       to the database via a fresh read. Confirmed the real committed
       sample library was untouched throughout (`git status` clean).
 
-Not done: the second half of the repair wizard (title-repair
-suggestions + duplicate-author merges - see v2.0.0-alpha.8), plus
-everything else on v2.0.0-alpha's original list except Dashboard,
-Metadata Comparison, Reports, Settings, Cover Finder, and Organize -
-grid/list views, instant/saved/smart search, notifications.
+Not done at this point: the second half of the repair wizard
+(title-repair suggestions + duplicate-author merges - see
+v2.0.0-alpha.8), plus everything else on v2.0.0-alpha's original list
+except Dashboard, Metadata Comparison, Reports, Settings, Cover
+Finder, and Organize - grid/list views, instant/saved/smart search,
+notifications.
+
+## v2.0.0-alpha.8 - Repair Wizard tab, repair wizard part 2 (done)
+
+See `GUI.md` for the full write-up. Eighth slice of the GUI MVP - the
+second and final half of the repair wizard, completing the whole
+concept `GUI.md` originally described in one entry. Same reasoning as
+Organize (v2.0.0-alpha.7): not blocked by an unanswered policy
+question - the CLI's `repair --apply` semantics (backup-first,
+auto-applicable-only, one item failing doesn't stop the rest) were
+already decided and tested; per-item checkbox selection is strictly
+*safer* than the CLI's all-or-nothing apply.
+
+- [x] `src/gui/repair_wizard_widget.py` - `RepairWizardWidget`: a new
+      "Repair" tab with three sections - a checkable list of
+      auto-applicable title-repair suggestions, a **read-only** list of
+      suggestions needing manual review (no checkboxes at all -
+      matches the CLI's distinction exactly: a suggestion with no
+      concrete value has nothing to apply), and a checkable list of
+      duplicate author groups. "Select All"/"Select None" and "Apply
+      Selected" reuse `MetadataRepairApplier`/`AuthorMerger`/
+      `backup_database` exactly as `python run.py repair --apply`
+      does, scoped to only the checked items.
+- [x] `format_suggestion_line()`/`format_needs_review_line()`/
+      `format_author_group_line()`/`summarize_repair_results()`: plain
+      functions kept separate from the widget for testability -
+      `tests/test_gui_repair_wizard_widget.py` (7 tests).
+- [x] Verified live end-to-end against a throwaway copy of the sample
+      database: previewed the real 23 auto-applicable title repairs,
+      73 needing manual review, and 52 duplicate author groups
+      (matching the exact "52 duplicate author groups" figure already
+      documented elsewhere in this project's history), narrowed the
+      checked selection to one title repair and one author merge,
+      applied through the widget's actual `apply_selected()` code path
+      (`QMessageBox` patched to no-ops), and confirmed both changes -
+      "The Maze of Bones by Rick Riordan" correctly stripped to "The
+      Maze of Bones", and the duplicate "King| Stephen" author record
+      correctly merged away - via a fresh database read. Confirmed the
+      real committed sample library was untouched throughout.
+
+Not done: everything else on v2.0.0-alpha's original list except
+Dashboard, Metadata Comparison, Reports, Settings, Cover Finder,
+Organize, and Repair - grid/list views, instant/saved/smart search,
+notifications.
 
 ## v2.0.0 - Full PySide6 desktop application
 
 See `GUI.md`. Dashboard, library view (grid/list/table), book details,
 metadata comparison, report viewer, search (instant/advanced/smart
 collections), settings, notifications. v2.0.0-alpha through
-v2.0.0-alpha.7 (above) are the first seven slices; this entry is done
-when the rest of that list ships.
+v2.0.0-alpha.8 (above) are the first eight slices; this entry is done
+when the rest of that list ships. With this slice, the "repair wizard"
+`GUI.md` described from the very start is now fully built - the only
+remaining write path is applying a chosen Metadata Comparison
+candidate's fields back into `metadata.db`, which is still a genuinely
+unanswered policy question (per-field approve? whole-candidate
+approve?), not just an implementation gap.
 
 ## v2.1.0 - Remaining additional providers
 

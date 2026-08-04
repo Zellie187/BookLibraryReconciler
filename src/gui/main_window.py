@@ -5,16 +5,18 @@ MVP for the v2.0.0 desktop application: a "Library" tab (searchable
 table of books, opening a read-only detail dialog on double-click - it
 in turn opens a Metadata Comparison dialog and a Cover Finder dialog),
 a "Dashboard" tab (library health at a glance), a "Reports" tab (the 4
-CLI report presets, rendered as text), an "Organize" tab (repair
-wizard: preview + selectively apply an Author/Title reorganization),
-and a "Settings" tab (edits Settings/config.json). The search box
-reuses the exact same SearchController/SearchService the CLI's
-`search` command uses - the query syntax typed into the search box is
-identical to `python run.py search "..."` (see Search.md), so there is
-only one place that understands search terms.
+CLI report presets, rendered as text), an "Organize" tab and a
+"Repair" tab (the two halves of the repair wizard: preview +
+selectively apply an Author/Title reorganization, and preview +
+selectively apply title repairs/duplicate-author merges), and a
+"Settings" tab (edits Settings/config.json). The search box reuses the
+exact same SearchController/SearchService the CLI's `search` command
+uses - the query syntax typed into the search box is identical to
+`python run.py search "..."` (see Search.md), so there is only one
+place that understands search terms.
 
-Deliberately minimal: no metadata-repair wizard/notifications yet (see
-docs/architecture/GUI.md and Roadmap.md for what's still planned).
+Deliberately minimal: no notifications yet (see docs/architecture/
+GUI.md and Roadmap.md for what's still planned).
 """
 
 from PySide6.QtWidgets import (
@@ -37,6 +39,7 @@ from gui.book_detail_dialog import BookDetailDialog
 from gui.book_table_model import BookTableModel
 from gui.dashboard_widget import DashboardWidget
 from gui.organize_wizard_widget import OrganizeWizardWidget
+from gui.repair_wizard_widget import RepairWizardWidget
 from gui.report_viewer_widget import ReportViewerWidget
 from gui.settings_widget import SettingsWidget
 
@@ -91,6 +94,7 @@ class MainWindow(QMainWindow):
         self.organize_wizard_widget = OrganizeWizardWidget(
             library_service, library_root, database_path
         )
+        self.repair_wizard_widget = RepairWizardWidget(library_service, database_path)
         self.settings_widget = SettingsWidget()
 
         tabs = QTabWidget()
@@ -98,6 +102,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.dashboard_widget, "Dashboard")
         tabs.addTab(self.report_viewer_widget, "Reports")
         tabs.addTab(self.organize_wizard_widget, "Organize")
+        tabs.addTab(self.repair_wizard_widget, "Repair")
         tabs.addTab(self.settings_widget, "Settings")
 
         self.setCentralWidget(tabs)

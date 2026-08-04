@@ -4,6 +4,43 @@ All notable changes to this project will be documented here.
 
 ---
 
+## Version 2.0.0-alpha.8 - Repair Wizard tab
+
+Eighth slice of the GUI MVP - the second and final half of the repair
+wizard, completing the whole concept `GUI.md` described from the
+start. Same reasoning as v2.0.0-alpha.7's Organize tab: the CLI's
+`repair --apply` semantics (backup-first, auto-applicable-only, one
+item failing doesn't stop the rest) were already decided and tested -
+per-item checkbox selection is strictly safer than the CLI's
+all-or-nothing apply.
+
+### Added
+- `src/gui/repair_wizard_widget.py` - `RepairWizardWidget`: a new
+  "Repair" tab with three sections - a checkable list of
+  auto-applicable title-repair suggestions, a **read-only** list of
+  suggestions needing manual review (no checkboxes - matches the
+  CLI's own distinction: nothing to apply there), and a checkable list
+  of duplicate author groups. "Select All"/"Select None" and "Apply
+  Selected" reuse `MetadataRepairApplier`/`AuthorMerger`/
+  `backup_database` exactly as the CLI does, scoped to only the
+  checked items.
+- `format_suggestion_line()`/`format_needs_review_line()`/
+  `format_author_group_line()`/`summarize_repair_results()`: plain
+  functions kept separate from the widget for testability - `tests/
+  test_gui_repair_wizard_widget.py` (7 tests).
+- Verified live end-to-end against a throwaway copy of the sample
+  database: previewed the real 23 auto-applicable title repairs, 73
+  needing manual review, and 52 duplicate author groups (matching a
+  figure already documented elsewhere in this project), narrowed the
+  selection to one repair and one merge, applied through the widget's
+  actual code path, and confirmed both changes via a fresh database
+  read. Confirmed the real committed sample library was untouched
+  throughout.
+- With this slice, the repair wizard `GUI.md` described from the very
+  start is now fully built.
+
+---
+
 ## Version 2.0.0-alpha.7 - Organize Wizard tab
 
 Seventh slice of the GUI MVP - the first half of the repair wizard

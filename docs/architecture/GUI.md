@@ -1,16 +1,18 @@
-# GUI (v2.0.0-alpha through v2.0.0-alpha.7 shipped, v2.0.0 planned)
+# GUI (v2.0.0-alpha through v2.0.0-alpha.8 shipped, v2.0.0 planned)
 
-An MVP is built: `python run.py gui` opens a five-tab window - a
+An MVP is built: `python run.py gui` opens a six-tab window - a
 searchable library table with a read-only book detail dialog (which
 opens a read-only Metadata Comparison dialog and a Cover Finder dialog
 that *can* save a cover), a Dashboard tab showing library health at a
 glance, a Reports tab rendering the 4 CLI report presets as text, an
-Organize tab (the first half of the repair wizard - preview + apply a
-reorganization), and a Settings tab editing `Settings/config.json`.
-See `Roadmap.md`'s v2.0.0-alpha through v2.0.0-alpha.7 entries for the
-full list of what's done. This document covers the design decisions -
-both the ones already implemented and the ones still ahead for the
-full v2.0.0 scope.
+Organize tab and a Repair tab (the two halves of the repair wizard -
+preview + selectively apply a reorganization, and preview +
+selectively apply title repairs/duplicate-author merges), and a
+Settings tab editing `Settings/config.json`. See `Roadmap.md`'s
+v2.0.0-alpha through v2.0.0-alpha.8 entries for the full list of
+what's done. This document covers the design decisions - both the
+ones already implemented and the ones still ahead for the full
+v2.0.0 scope.
 
 ## Technology
 
@@ -32,6 +34,7 @@ gui/
     settings_widget.py            SettingsWidget - edits Settings/config.json
     cover_finder_dialog.py        CoverFinderDialog - find + apply a cover (writes cover.jpg)
     organize_wizard_widget.py     OrganizeWizardWidget - preview + selectively apply a reorganization
+    repair_wizard_widget.py       RepairWizardWidget - preview + selectively apply title repairs/author merges
 ```
 
 `MainWindow` doesn't parse search queries itself - it hands the typed
@@ -135,6 +138,23 @@ Because this is a whole-library operation (unlike the per-book Cover
 Finder/Metadata Comparison dialogs), it lives as its own top-level tab
 rather than something reachable from `BookDetailDialog`.
 
+`RepairWizardWidget` is the "Repair" tab - the second and final half
+of the repair wizard, completing the whole concept `GUI.md` described
+from the start. Same non-policy-question reasoning as Organize: the
+CLI's `repair --apply` semantics (backup-first, auto-applicable-only,
+one item failing doesn't stop the rest) were already decided and
+tested. Three sections: a checkable list of auto-applicable
+title-repair suggestions, a **read-only** list of suggestions needing
+manual review (deliberately not checkable - a suggestion with no
+concrete `suggested_value` has nothing to apply, matching the CLI's
+own "needs manual review" distinction exactly rather than inventing a
+new one), and a checkable list of duplicate author groups.
+`format_suggestion_line()`/`format_needs_review_line()`/
+`format_author_group_line()`/`summarize_repair_results()` are, once
+again, plain functions kept separate from the widget for testability.
+Like Organize, it's a whole-library operation and lives as its own
+top-level tab.
+
 ## CLI: `python run.py gui`
 
 No arguments. Launches the window and blocks on Qt's event loop
@@ -179,9 +199,6 @@ Actions run.
   `lookup`. Applying a chosen candidate's fields back into
   `metadata.db` is still a real, unanswered policy question (per-field
   approve? whole-candidate approve?), not just an implementation gap.
-- The second half of the repair wizard: `python run.py repair`'s
-  title-repair suggestions and duplicate-author merges have no GUI
-  front-end yet (only `organize` does, via the "Organize" tab).
 - Exporting the Reports tab's output to CSV/Excel/HTML/PDF from the
   GUI itself - the tab shows the same numbers on screen, but saving to
   disk in a specific format is still CLI-only (`python run.py report
@@ -218,11 +235,13 @@ Whatever the GUI ends up doing, it inherits the project's one
 non-negotiable rule: no destructive action (a metadata write, a file
 move) happens without an explicit preview step and an explicit user
 approval, mirroring `repair/organize_applier.py`'s preview/apply split.
-`CoverFinderDialog` (v2.0.0-alpha.6) and `OrganizeWizardWidget`
-(v2.0.0-alpha.7) are the first GUI code to actually exercise this:
-candidates/plans are previewed first, nothing is written until an
-explicit apply click, and `backup_database()` runs before every save -
-the same rule, just proven by the GUI itself now instead of only the
-CLI. It's still not load-bearing for the two remaining write paths -
-the second half of the repair wizard (title repairs + author merges)
-and a Metadata Comparison apply step - since neither exists yet.
+`CoverFinderDialog` (v2.0.0-alpha.6), `OrganizeWizardWidget`
+(v2.0.0-alpha.7), and `RepairWizardWidget` (v2.0.0-alpha.8) all prove
+this: candidates/plans/suggestions are previewed first, nothing is
+written until an explicit apply click, and `backup_database()` runs
+before every save - the same rule the CLI has always followed, now
+exercised by the GUI itself for every write path except one. The only
+remaining write path this constraint hasn't been tested against is a
+Metadata Comparison apply step, which doesn't exist yet - and won't,
+until the per-field-vs-whole-candidate policy question is actually
+answered rather than deferred.

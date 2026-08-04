@@ -9,10 +9,10 @@ Status: v1.0.0-alpha foundation + v1.1.0 search engine + v1.2.0
 metadata analysis/health scoring + v1.3.0 metadata repair engine +
 v1.4.0 report engine + v1.5.0 Open Library provider + v1.5.1 Cover
 Download Engine + v1.6.0 Google Books provider + v1.7.0 Internet
-Archive provider + v2.0.0-alpha through v2.0.0-alpha.7 GUI MVP
-(library/dashboard/reports/settings/organize tabs, metadata
-comparison, cover finder) shipped. See `docs/architecture/Roadmap.md`
-for what each GUI slice added.
+Archive provider + v2.0.0-alpha through v2.0.0-alpha.8 GUI MVP
+(library/dashboard/reports/settings/organize/repair tabs, metadata
+comparison, cover finder - the full repair wizard) shipped. See
+`docs/architecture/Roadmap.md` for what each GUI slice added.
 
 ## Requirements
 
@@ -133,9 +133,9 @@ python run.py covers 1 --apply --candidate 2
 
 ### How `gui` works
 
-An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.7 - see
+An MVP desktop application (v2.0.0-alpha through v2.0.0-alpha.8 - see
 `docs/architecture/GUI.md` for the full write-up and what's still
-planned for the complete v2.0.0 scope) with five tabs:
+planned for the complete v2.0.0 scope) with six tabs:
 
 - **Library** - a searchable table of the whole library, and a
   read-only detail dialog on double-clicking a row. The search box
@@ -155,22 +155,25 @@ planned for the complete v2.0.0 scope) with five tabs:
   duplicates/series/statistics), rendered as text with a "Generate"
   button - the GUI equivalent of `report`, minus writing a file to
   disk (still CLI-only).
-- **Organize** - the GUI equivalent of `organize`: preview an
-  Author/Title reorganization for the whole library as a checkable
-  list (checked by default), then "Apply Selected" - backup-first,
-  same as the CLI, but with per-book selection the CLI doesn't have.
+- **Organize** and **Repair** - the two halves of the GUI's repair
+  wizard, the equivalent of `organize`/`repair`: preview a
+  reorganization plan, or title-repair suggestions + duplicate-author
+  groups, each as a checkable list (checked by default, needs-manual-
+  review items shown read-only), then "Apply Selected" - backup-first,
+  same as the CLI, but with per-item selection the CLI doesn't have.
 - **Settings** - edits `Settings/config.json` (`library_path`/
   `metadata_db`) instead of hand-editing the file; takes effect the
   next time you launch the app, not live.
 
-Everything in the GUI is read-only except three write paths, all
+Everything in the GUI is read-only except four write paths, all
 reusing the CLI's own already-decided, backup-first semantics rather
 than inventing new ones: Settings (writes `Settings/config.json`, a
 separate file the CLI setup instructions above already have you edit
 by hand), the cover finder (writes `cover.jpg` + `has_cover`, exactly
-like `covers --apply`), and Organize (moves files + updates paths,
-exactly like `organize --apply`). Needs `PySide6`, installed via
-`requirements.txt`.
+like `covers --apply`), Organize (moves files + updates paths, exactly
+like `organize --apply`), and Repair (rewrites titles + merges
+duplicate authors, exactly like `repair --apply`). Needs `PySide6`,
+installed via `requirements.txt`.
 
 ```bash
 python run.py gui
